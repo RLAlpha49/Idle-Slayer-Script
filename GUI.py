@@ -8,12 +8,10 @@ from configparser import ConfigParser
 from PIL import Image
 from CTkToolTip import *
 from Log import write_log_entry
-
+import AutoSlayer
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
-
-
 
 # Get the base directory of the application (works when running from executable)
 base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -26,15 +24,6 @@ os.makedirs(logs_dir, exist_ok=True)
 settings_file_path = os.path.join(logs_dir, "settings.txt")
 log_file_path = os.path.join(logs_dir, "log.txt")
 
-# Get the directory of the current Python script
-script_directory = os.path.dirname(os.path.abspath(__file__))
-log_entry = f"Script Directory: {base_dir}"
-write_log_entry(log_entry)
-
-# Construct the path to the Settings.txt file in the same directory
-log_entry = f"Settings Path: {settings_file_path}"
-write_log_entry(log_entry)
-
 default_settings = {
     "paused": "False", "jumpratevalue": "150", 
     "autobuyupgradestate": "False", "cycleportalsstate": "False","disableragestate": "False", 
@@ -46,17 +35,17 @@ default_settings = {
 # Check if the log file exists, and create it if not
 if not os.path.exists(log_file_path):
     with open(log_file_path, "w") as logfile:
-        logfile.write("Log file created")
-    log_entry = f"Log File: Created"
-    write_log_entry(log_entry)
+        write_log_entry(f"Log File: Created")
+    
 
 # Check if the settings file exists, and create it if not
 if not os.path.exists(settings_file_path):
     with open(settings_file_path, "w") as configfile:
         configfile.write("[Settings]\n" +
                          "\n".join([f"{setting} = {default}" for setting, default in default_settings.items()]))
-    log_entry = f"Settings File: Created"
-    write_log_entry(log_entry)
+    write_log_entry(f"Settings File: Created")
+    write_log_entry(f"Script Directory: {base_dir}")
+    write_log_entry(f"Settings Path: {settings_file_path}")
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -183,8 +172,7 @@ class App(customtkinter.CTk):
         current_jump_rate_value = self.settings.get("Settings", "JumpRateValue", fallback="")
         if new_jump_rate_value != current_jump_rate_value:
             self.settings.set("Settings", "JumpRateValue", new_jump_rate_value)
-            log_entry = f"Jump rate updated to: {new_jump_rate_value}"
-            write_log_entry(log_entry)
+            write_log_entry(f"Jump rate updated to: {new_jump_rate_value}")
 
         # Update the checkbox states in the Settings section
         checkbox_names = ["Auto Buy Upgrade", "Cycle Portals", "Disable Rage Horde",
@@ -198,8 +186,7 @@ class App(customtkinter.CTk):
 
                 if new_checkbox_state != (current_checkbox_state == "True"):
                     self.settings.set("Settings", checkbox_state_key, str(new_checkbox_state))
-                    log_entry = f"Checkbox '{checkbox_names[col * 3 + row - 1]}' updated to: {new_checkbox_state}"
-                    write_log_entry(log_entry)
+                    write_log_entry(f"Checkbox '{checkbox_names[col * 3 + row - 1]}' updated to: {new_checkbox_state}")
 
         # Save the changes to the configuration file
         with open(settings_file_path, "w") as configfile:
@@ -304,7 +291,7 @@ class App(customtkinter.CTk):
             
         self.update_log_text_box()  # Call the function to start real-time updating
         
-    def start_manual_scroll(self, event):
+    def start_manual_scroll(self):
         self.manually_scrolling = True  # Set the flag to indicate manual scrolling
 
     def update_log_text_box(self):
@@ -322,7 +309,10 @@ class App(customtkinter.CTk):
     def on_closing(self):
         # Stop scheduled events and close the GUI window
         self.after_cancel(self.update_log_text_box)
+        AutoSlayer.stop_threads() # Stop
         self.destroy()
+        
+        
 
 if __name__ == "__main__":
     app = App()
