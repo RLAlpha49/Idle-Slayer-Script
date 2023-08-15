@@ -52,18 +52,23 @@ def general_gameplay():
     with open(settings_file_path, "w") as configfile:
         settings.write(configfile)
     
+    settings.set("Settings", "paused", str(False))
+    with open(settings_file_path, "w") as configfile:
+        settings.write(configfile)
+    
     while not event.is_set():  # Check the event status
         settings = load_settings()
         if not settings.getboolean("Settings", "paused"):
             window = get_idle_slayer_window()
             
-            print("checking chesthunt")
+            print("Checking For Chesthunt...")
             if pixel_search_in_window((255, 255, 255), 470, 810, 180, 230,shade=0) is not None:
                 if pixel_search_in_window((246, 143, 55), 180, 260, 265, 330,shade=1) is not None:
                     print("second color found")
                     if pixel_search_in_window((173, 78, 26), 170, 260, 265, 330,shade=1) is not None:
                         print("third color found")
                         chest_hunt()
+            print("Checking For Portal...")
             CyclePortals()
             
             # Collect Silver boxes
@@ -105,13 +110,10 @@ def color_match(actual_color, target_color, shade):
 def CyclePortals():
     settings = load_settings()
     if settings.getboolean("Settings", "cycleportalsstate") and not settings.getboolean("Settings", "chesthuntactivestate"):  
-        target_color = (255, 255, 255)
-        shade_tolerance = 5
-
         window = get_idle_slayer_window()
         
-        pixel_position = pixel_search_in_window(target_color, 1150, 1215, 110, 175, shade=shade_tolerance)
-        if pixel_position:
+        time.sleep(0.5)
+        if pixel_search_in_window((255, 255, 255), 1150, 1215, 110, 175, shade=10) or pixel_search_in_window((31,31,31), 1150, 1215, 110, 175, shade=10) or pixel_search_in_window((41,1,48), 1150, 1215, 110, 175, shade=10):
             return
         else:
             # Attempt to fix pyautogui.FAILSAFE error
@@ -165,31 +167,36 @@ def chest_hunt():
     pixel_y = window.top + 325
     count = 0
     
+    print(f"Saver x: {saver_x}, Saver y: {saver_y}")
+    
     for y in range(3):
         for x in range(10):
             # After opening 2 chests, open saver
             if count == 2 and saver_x > 0:
-                pyautogui.click(saver_x + 33, saver_y + 33)
+                pyautogui.click(saver_x + 32, saver_y + 46)
                 if settings.getboolean("Settings", "nolockpickingstate"):
                     time.sleep(1.5)
                 else:
                     time.sleep(0.55)
             
             # Skip saver no matter what
-            if pixel_y == saver_y and pixel_x == saver_x:
-                if x == 10:  # Go to the next line if saver is the last chest
+            if (pixel_y - 23) == (saver_y + 46) and (pixel_x + 33) == (saver_x + 32):
+                if count < 2:  # Go to the next chest if saver is the first two chests
+                    pixel_x += 95
+                elif x == 10:
                     break
                 else:
-                    pixel_x += 95
+                    #pixel_x += 95
                     continue
             
             # Open chest
-            #pyautogui.click(pixel_x + 33, pixel_y - 23)
             pyautogui.click(pixel_x + 33, pixel_y - 23)
             if settings.getboolean("Settings", "nolockpickingstate"):
                 time.sleep(1.5)
             else:
                 time.sleep(0.55)
+            
+            print(f"Pixel x: {pixel_x}, Pixel y: {pixel_y}")
             
             # Check if chest hunt ended
             if pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
@@ -217,9 +224,10 @@ def chest_hunt():
         pixel_x = window.left + 185
     
     # Look for close button until found
-    if pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
+    while pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
         print("exit chesthunt")
         pyautogui.click(window.left + 643, window.top + 693)
+        break
     
     settings.set("Settings", "chesthuntactivestate", str(False))
     with open(settings_file_path, "w") as configfile:
