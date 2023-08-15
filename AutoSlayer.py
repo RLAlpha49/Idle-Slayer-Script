@@ -46,10 +46,24 @@ def arrow_keys():
             # P.S. Without this, program was using half my cpu, I would reccomend not removing this
                 
 def general_gameplay():
+    settings = load_settings()
+    settings_file_path = os.path.join(logs_dir, "settings.txt")
+    settings.set("Settings", "chesthuntactivestate", str(False))
+    with open(settings_file_path, "w") as configfile:
+        settings.write(configfile)
+    
     while not event.is_set():  # Check the event status
         settings = load_settings()
         if not settings.getboolean("Settings", "paused"):
             window = get_idle_slayer_window()
+            
+            print("checking chesthunt")
+            if pixel_search_in_window((255, 255, 255), 470, 810, 180, 230,shade=0) is not None:
+                if pixel_search_in_window((246, 143, 55), 180, 260, 265, 330,shade=1) is not None:
+                    print("second color found")
+                    if pixel_search_in_window((173, 78, 26), 170, 260, 265, 330,shade=1) is not None:
+                        print("third color found")
+                        chest_hunt()
             CyclePortals()
             
             # Collect Silver boxes
@@ -74,6 +88,10 @@ def pixel_search_in_window(color, left, right, top, bottom, shade=None):
     for x in range(left, right):
         for y in range(top, bottom):
             pixel_color = screenshot.getpixel((x, y))
+            # Used to find different pixel rgb values within a certain area. I use this for finding out what rgb values to search for in the script.
+            if color == (0, 0, 0):
+                print(f"Pixel at ({x}, {y}) - Color: {pixel_color}")
+            
             if color_match(pixel_color, color, shade):
                 return x, y
     return None
@@ -85,24 +103,132 @@ def color_match(actual_color, target_color, shade):
     return True
     
 def CyclePortals():
-    target_color = (255, 255, 255)  # White color in RGB
-    shade_tolerance = 5
+    settings = load_settings()
+    if settings.getboolean("Settings", "cycleportalsstate") and not settings.getboolean("Settings", "chesthuntactivestate"):  
+        target_color = (255, 255, 255)
+        shade_tolerance = 5
 
+        window = get_idle_slayer_window()
+        
+        pixel_position = pixel_search_in_window(target_color, 1150, 1215, 110, 175, shade=shade_tolerance)
+        if pixel_position:
+            return
+        else:
+            # Attempt to fix pyautogui.FAILSAFE error
+            # Calculate the target coordinates within screen boundaries
+            target_x = min(max(window.left + 1160, 0), pyautogui.size()[0])
+            target_y = min(max(window.top + 150, 0), pyautogui.size()[1])
+            pyautogui.moveTo(target_x, target_y)
+            #pyautogui.moveTo(window.left + 1160, window.top + 150)
+            pyautogui.leftClick()
+            write_log_entry(f"Portal Activated")
+            
+def chest_hunt():
+    settings = load_settings()
+    chesthuntactivestate = settings.getboolean("Settings", "chesthuntactivestate")
+    chesthuntactivestate = not chesthuntactivestate
+    
+    settings_file_path = os.path.join(logs_dir, "settings.txt")
+    settings.set("Settings", "chesthuntactivestate", str(chesthuntactivestate))
+    with open(settings_file_path, "w") as configfile:
+        settings.write(configfile)
+            
+    write_log_entry(f"Chesthunt")
+    
     window = get_idle_slayer_window()
-
-    pixel_position = pixel_search_in_window(target_color, 1150, 1215, 110, 175, shade=shade_tolerance)
-    if pixel_position:
-        return
+    
+    if settings.getboolean("Settings", "nolockpickingstate"):
+        time.sleep(4)
     else:
-        pyautogui.moveTo(window.left + 1160, window.top + 150)
-        pyautogui.leftClick()
-        write_log_entry(f"Portal Activated")
+        time.sleep(2)
+    
+    saver_x = 0
+    saver_y = 0
+    pixel_x = window.left + 185
+    pixel_y = window.top + 325
+    
+    # Locate saver
+    for y in range(3):
+        for x in range(10):
+            pixel_position = pixel_search_in_window((255, 235, 4), 171, 1114, 240, 520, shade=0)
+            if pixel_position is not None:
+                saver_x, saver_y = window.left + pixel_position[0], window.top + pixel_position[1]
+                break
+            pixel_x += 95
+        if saver_x > 0:
+            break
+        pixel_y += 95
+        pixel_x = window.left + 185
+    
+    # Actual chest hunt
+    pixel_x = window.left + 185
+    pixel_y = window.top + 325
+    count = 0
+    
+    for y in range(3):
+        for x in range(10):
+            # After opening 2 chests, open saver
+            if count == 2 and saver_x > 0:
+                pyautogui.click(saver_x + 33, saver_y + 33)
+                if settings.getboolean("Settings", "nolockpickingstate"):
+                    time.sleep(1.5)
+                else:
+                    time.sleep(0.55)
+            
+            # Skip saver no matter what
+            if pixel_y == saver_y and pixel_x == saver_x:
+                if x == 10:  # Go to the next line if saver is the last chest
+                    break
+                else:
+                    pixel_x += 95
+                    continue
+            
+            # Open chest
+            #pyautogui.click(pixel_x + 33, pixel_y - 23)
+            pyautogui.click(pixel_x + 33, pixel_y - 23)
+            if settings.getboolean("Settings", "nolockpickingstate"):
+                time.sleep(1.5)
+            else:
+                time.sleep(0.55)
+            
+            # Check if chest hunt ended
+            if pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
+                print("exit x")
+                break
+            
+            # Wait more based on conditions
+            sleep_time = 0
+            if pixel_search_in_window((255,0,0), 470, 810, 180, 230, shade=1) is not None:
+                sleep_time = 3 if settings.getboolean("Settings", "nolockpickingstate") else 1.5
+                print("mimic")
+            elif pixel_search_in_window((106,190,48), 580, 680, 650, 720, shade=1) is not None:
+                print("2x")
+                sleep_time = 2.5 if settings.getboolean("Settings", "nolockpickingstate") else 1.5
+            
+            time.sleep(sleep_time)
+            pixel_x += 95
+            count += 1     
+        
+        if pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
+            print("exit y")
+            break
+        
+        pixel_y += 95
+        pixel_x = window.left + 185
+    
+    # Look for close button until found
+    if pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
+        print("exit chesthunt")
+        pyautogui.click(window.left + 643, window.top + 693)
+    
+    settings.set("Settings", "chesthuntactivestate", str(False))
+    with open(settings_file_path, "w") as configfile:
+        settings.write(configfile)
+    print(chesthuntactivestate)
 
 def stop_threads():
     #os._exit(0) # Used to close program when coding. Compiled script does not need this
-    event.set()  # Set the event to stop the threads
-
-    
+    event.set()  # Set the event to stop the threads 
 
 def main():
     app = GUI.App()  # Create an instance of the App class

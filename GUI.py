@@ -4,6 +4,8 @@ import sys
 import customtkinter
 from tkinter import messagebox
 import webbrowser
+import time
+import threading
 from configparser import ConfigParser
 from PIL import Image
 from CTkToolTip import *
@@ -29,7 +31,8 @@ default_settings = {
     "autobuyupgradestate": "False", "cycleportalsstate": "False","disableragestate": "False", 
     "skipbonusstagestate": "False", "nolockpickingstate": "False","wipstate": "False", 
     "craftsoulbonusstate": "False", "dimensionalstate": "False","craftragepillstate": "False", 
-    "disableragehordestate": "False", "nolockpicking100state": "False", "craftdimensionalstaffstate": "False"
+    "disableragehordestate": "False", "nolockpicking100state": "False", "craftdimensionalstaffstate": "False",
+    "chesthuntactivestate": "False"
 }
 
 # Check if the log file exists, and create it if not
@@ -46,6 +49,8 @@ if not os.path.exists(settings_file_path):
     write_log_entry(f"Settings File: Created")
     write_log_entry(f"Script Directory: {base_dir}")
     write_log_entry(f"Settings Path: {settings_file_path}")
+
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -109,8 +114,10 @@ class App(customtkinter.CTk):
         
         # Create a CTkToolTip instance for the "Exit" button
         exit_tooltip = CTkToolTip(self.exit_button, message="Exit the application")
-          
+        
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        
     
     def load_settings(self):
         settings = ConfigParser()
@@ -119,7 +126,7 @@ class App(customtkinter.CTk):
         return settings
     
     def toggle_pause(self):
-        settings = self.load_settings()  # Add parentheses to call the function
+        settings = self.load_settings()
         paused = settings.getboolean("Settings", "paused")
         paused = not paused
         self.pause_button.configure(text="Pause" if not paused else "Resume")
@@ -289,22 +296,27 @@ class App(customtkinter.CTk):
             log_contents = logfile.read()
             self.log_text_box.insert("1.0", log_contents)
             
-        self.update_log_text_box()  # Call the function to start real-time updating
+        update_log_textbox_thread = threading.Thread(target=self.update_log_text_box)
+        update_log_textbox_thread.start()    
+            
+        #self.update_log_text_box()  # Call the function to start real-time updating
         
     def start_manual_scroll(self):
         self.manually_scrolling = True  # Set the flag to indicate manual scrolling
 
     def update_log_text_box(self):
-        with open(log_file_path, "r") as logfile:
-            log_contents = logfile.read()
+        while 1:
+            with open(log_file_path, "r") as logfile:
+                log_contents = logfile.read()
 
-            # Clear the existing contents and insert new log contents
-            self.log_text_box.delete("1.0", "end")  # Clear the existing contents
-            self.log_text_box.insert("1.0", log_contents)  # Insert log contents at the beginning
-            self.log_text_box.yview_moveto(1.0)  # Scroll to the bottom
-            self.log_text_box.configure(state="disabled")  # Set the text box back to disabled mode
-
-        self.log_frame.after(5000, self.update_log_text_box)
+                # Clear the existing contents and insert new log contents
+                self.log_text_box.configure(state="normal")
+                self.log_text_box.delete("1.0", "end")  # Clear the existing contents
+                self.log_text_box.insert("1.0", log_contents)  # Insert log contents at the beginning
+                self.log_text_box.yview_moveto(1.0)  # Scroll to the bottom
+                self.log_text_box.configure(state="disabled")  # Set the text box back to disabled mode
+            time.sleep(5)
+            #self.log_frame.after(5000, self.update_log_text_box)
     
     def on_closing(self):
         # Stop scheduled events and close the GUI window
@@ -312,7 +324,7 @@ class App(customtkinter.CTk):
         AutoSlayer.stop_threads() # Stop
         self.destroy()
         
-        
+
 
 if __name__ == "__main__":
     app = App()
