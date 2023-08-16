@@ -46,17 +46,8 @@ def arrow_keys():
             # P.S. Without this, program was using half my cpu, I would reccomend not removing this
                 
 def general_gameplay():
-    settings = load_settings()
-    settings_file_path = os.path.join(logs_dir, "settings.txt")
-    settings.set("Settings", "chesthuntactivestate", str(False))
-    with open(settings_file_path, "w") as configfile:
-        settings.write(configfile)
-    
-    settings.set("Settings", "paused", str(False))
-    with open(settings_file_path, "w") as configfile:
-        settings.write(configfile)
-    
     while not event.is_set():  # Check the event status
+        time.sleep(0.1)
         settings = load_settings()
         if not settings.getboolean("Settings", "paused"):
             window = get_idle_slayer_window()
@@ -68,7 +59,6 @@ def general_gameplay():
                     if pixel_search_in_window((173, 78, 26), 170, 260, 265, 330,shade=1) is not None:
                         print("third color found")
                         chest_hunt()
-            print("Checking For Portal...")
             CyclePortals()
             
             # Collect Silver boxes
@@ -110,10 +100,11 @@ def color_match(actual_color, target_color, shade):
 def CyclePortals():
     settings = load_settings()
     if settings.getboolean("Settings", "cycleportalsstate") and not settings.getboolean("Settings", "chesthuntactivestate"):  
+        print("Checking For Portal...")
         window = get_idle_slayer_window()
         
-        time.sleep(0.5)
-        if pixel_search_in_window((255, 255, 255), 1150, 1215, 110, 175, shade=10) or pixel_search_in_window((31,31,31), 1150, 1215, 110, 175, shade=10) or pixel_search_in_window((41,1,48), 1150, 1215, 110, 175, shade=10):
+        time.sleep(0.3)
+        if pixel_search_in_window((255, 255, 255), 1150, 1215, 110, 175, shade=1) or pixel_search_in_window((31,31,31), 1150, 1215, 110, 175, shade=1) or pixel_search_in_window((41,1,48), 1150, 1215, 110, 175, shade=1):
             return
         else:
             # Attempt to fix pyautogui.FAILSAFE error
@@ -168,19 +159,21 @@ def chest_hunt():
     count = 0
     
     print(f"Saver x: {saver_x}, Saver y: {saver_y}")
+    print(f"Saver Chest: {saver_x + 32}, {saver_y + 43}")
+    (print((saver_y + 43)) if saver_y != 850 else print((saver_y - 27)))
     
     for y in range(3):
         for x in range(10):
             # After opening 2 chests, open saver
             if count == 2 and saver_x > 0:
-                pyautogui.click(saver_x + 32, saver_y + 46)
+                pyautogui.click(saver_x + 32, ((saver_y + 43) if saver_y != 850 else (saver_y - 27)))
                 if settings.getboolean("Settings", "nolockpickingstate"):
                     time.sleep(1.5)
                 else:
                     time.sleep(0.55)
             
             # Skip saver no matter what
-            if (pixel_y - 23) == (saver_y + 46) and (pixel_x + 33) == (saver_x + 32):
+            if (pixel_y - 23) == ((saver_y + 43) if saver_y != 850 else (saver_y - 27)) and (pixel_x + 32) == (saver_x + 43):
                 if count < 2:  # Go to the next chest if saver is the first two chests
                     pixel_x += 95
                 elif x == 10:
@@ -196,21 +189,23 @@ def chest_hunt():
             else:
                 time.sleep(0.55)
             
-            print(f"Pixel x: {pixel_x}, Pixel y: {pixel_y}")
+            print(f"{count} Pixel x: {pixel_x}, Pixel y: {pixel_y}")
+            print(f"{count} Chest Opened: {pixel_x + 33}, {pixel_y - 23}")
             
             # Check if chest hunt ended
             if pixel_search_in_window((179, 0, 0), 300, 500, 650, 700, shade=1) or pixel_search_in_window((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
                 print("exit x")
                 break
             
+            time.sleep(0.5)
             # Wait more based on conditions
             sleep_time = 0
             if pixel_search_in_window((255,0,0), 470, 810, 180, 230, shade=1) is not None:
-                sleep_time = 3 if settings.getboolean("Settings", "nolockpickingstate") else 1.5
+                sleep_time = 2 if settings.getboolean("Settings", "nolockpickingstate") else 1
                 print("mimic")
             elif pixel_search_in_window((106,190,48), 580, 680, 650, 720, shade=1) is not None:
                 print("2x")
-                sleep_time = 2.5 if settings.getboolean("Settings", "nolockpickingstate") else 1.5
+                sleep_time = 3 if settings.getboolean("Settings", "nolockpickingstate") else 1.5
             
             time.sleep(sleep_time)
             pixel_x += 95
@@ -244,6 +239,16 @@ def main():
     
 
 if __name__ == "__main__":
+    settings = load_settings()
+    settings_file_path = os.path.join(logs_dir, "settings.txt")
+    settings.set("Settings", "chesthuntactivestate", str(False))
+    with open(settings_file_path, "w") as configfile:
+        settings.write(configfile)
+    
+    settings.set("Settings", "paused", str(False))
+    with open(settings_file_path, "w") as configfile:
+        settings.write(configfile)
+    
     main_thread = threading.Thread(target=main)
     main_thread.start()
     
@@ -255,4 +260,3 @@ if __name__ == "__main__":
     
     general_gameplay_thread = threading.Thread(target=general_gameplay)
     general_gameplay_thread.start()
-    
