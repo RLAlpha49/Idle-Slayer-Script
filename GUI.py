@@ -245,9 +245,9 @@ class App(customtkinter.CTk):
         ]
         self.checkboxes = []  # Create a list to hold checkbox references
         checkbox_tooltips = [
-            ["Tooltip for Auto Buy Upgrade", "Tooltip for Cycle Portals", "Tooltip for Disable Rage Horde"],
-            ["Tooltip for Skip Bonus Stage", "Tooltip for No Lockpicking100", "Tooltip for WIP"],
-            ["Tooltip for Craft Soul Bonus", "Tooltip for Craft dimensional Staff", "Tooltip for Craft Rage Pill"]
+            ["Tooltip for Auto Buy Upgrade (WIP)", "Cycle's through portal whenever available", "Tooltip for Disable Rage Horde (WIP)"],
+            ["Tooltip for Skip Bonus Stage (WIP)", "Check if you have Lockpicking100, for faster chesthunts", "Tooltip for WIP"],
+            ["Tooltip for Craft Soul Bonus (WIP)", "Tooltip for Craft dimensional Staff (WIP)", "Tooltip for Craft Rage Pill (WIP)"]
         ]
 
         for col, label_text in enumerate(label_texts, start=0):
