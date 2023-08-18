@@ -59,6 +59,18 @@ def general_gameplay():
                     if pixel_search_in_window((173, 78, 26), 170, 260, 265, 330,shade=1) is not None:
                         print("third color found")
                         chest_hunt()
+            
+            print("Checking For Megahorde")
+            #pyautogui.moveTo(window.left + 419, window.top + 323)
+            if pixel_search_in_window((121,117,126), 417, 421, 315, 330, shade=0) is not None:
+                Rage_When_Horde()
+                print("(121,117,126)")
+                print("Shade 0")
+            elif pixel_search_in_window((121,117,126), 417, 421, 315, 330, shade=10) is not None:
+                Rage_When_Horde()
+                print("(98,97,106)")
+                print("Shade 10")
+
             CyclePortals()
             
             # Collect Silver boxes
@@ -67,9 +79,25 @@ def general_gameplay():
                 pyautogui.moveTo(window.left + pixel_position[0], window.top + pixel_position[1])
                 pyautogui.leftClick()
                 write_log_entry(f"Silver Box Collected")
-            time.sleep(5) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
+            time.sleep(0.5) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
            
+def Rage_When_Horde():
+    print("Rage When Horde")
+    #if soul_bonus_active:
+        #if craft_rage_pill:
+            #get_temporay_item()
+    #if disable_rage:
+        #if soul_bonus_active:
+            #Rage()
+    #else:
+        #Rage()
         
+    Rage()
+    
+def Rage():
+    print("Rage")
+    write_log_entry(f"Rage MegaHorde")
+    keyboard.press_and_release('e')
     
 def get_idle_slayer_window():
     # Find the Idle Slayer window by its title
@@ -160,7 +188,6 @@ def chest_hunt():
     
     print(f"Saver x: {saver_x}, Saver y: {saver_y}")
     print(f"Saver Chest: {saver_x + 32}, {saver_y + 43}")
-    (print((saver_y + 43)) if saver_y != 850 else print((saver_y - 27)))
     
     for y in range(3):
         for x in range(10):
@@ -173,21 +200,23 @@ def chest_hunt():
                     time.sleep(0.55)
             
             # Skip saver no matter what
-            if (pixel_y - 23) == ((saver_y + 43) if saver_y != 850 else (saver_y - 27)) and (pixel_x + 32) == (saver_x + 43):
+            if (pixel_y - 23) == ((saver_y + 43) if saver_y != 850 else (saver_y - 27)) and (pixel_x + 33) == (saver_x + 32):
                 if count < 2:  # Go to the next chest if saver is the first two chests
+                    print("count less than 2: Skipping saver")
                     pixel_x += 95
                 elif x == 10:
                     break
                 else:
-                    #pixel_x += 95
+                    print("Saver already collected")
+                    pixel_x += 95
                     continue
             
             # Open chest
             pyautogui.click(pixel_x + 33, pixel_y - 23)
             if settings.getboolean("Settings", "nolockpickingstate"):
-                time.sleep(1.5)
+                time.sleep(1)
             else:
-                time.sleep(0.55)
+                time.sleep(0.5)
             
             print(f"{count} Pixel x: {pixel_x}, Pixel y: {pixel_y}")
             print(f"{count} Chest Opened: {pixel_x + 33}, {pixel_y - 23}")
@@ -201,11 +230,11 @@ def chest_hunt():
             # Wait more based on conditions
             sleep_time = 0
             if pixel_search_in_window((255,0,0), 470, 810, 180, 230, shade=1) is not None:
-                sleep_time = 2 if settings.getboolean("Settings", "nolockpickingstate") else 1
+                sleep_time = 2.5 if settings.getboolean("Settings", "nolockpickingstate") else 1.25
                 print("mimic")
             elif pixel_search_in_window((106,190,48), 580, 680, 650, 720, shade=1) is not None:
                 print("2x")
-                sleep_time = 3 if settings.getboolean("Settings", "nolockpickingstate") else 1.5
+                sleep_time = 2.5 if settings.getboolean("Settings", "nolockpickingstate") else 1.25
             
             time.sleep(sleep_time)
             pixel_x += 95
