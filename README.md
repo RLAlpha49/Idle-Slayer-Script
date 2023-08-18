@@ -16,6 +16,8 @@
 - Bonus Stage's (WIP)
 - Auto Buy Equipment & Upgrades (WIP)
 
+TIP: Hover over things in the GUI for tooltips on their functionality
+
 ---
 
 Contact me on discord for anything.
