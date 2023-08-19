@@ -5,7 +5,7 @@
 4. Make sure game is in focus.
 5. Enable "Rounded Bulk Buy" & "Hide Locked Quest Rewards" in settings.
 6. Disable "Confirm Dialogue" for portal in settings.
-7. Do NOT! buy "Vertical Magnet" upgrade
+7. Do NOT! buy "Vertical Magnet" (Will be skipped by "Auto Buy Equipment & Upgrades" feature)
 
 # Functionality / Capabilities
 - Automatically Jumps & Boost
