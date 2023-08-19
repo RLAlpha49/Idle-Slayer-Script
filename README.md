@@ -12,9 +12,9 @@
 - Collect Silver Boxes
 - Cycle Portals
 - ChestHunt
+- Auto Buy Equipment & Upgrades
 - Auto Rage (WIP)
 - Bonus Stage's (WIP)
-- Auto Buy Equipment & Upgrades (WIP)
 
 TIP: Hover over things in the GUI for tooltips on their functionality
 
