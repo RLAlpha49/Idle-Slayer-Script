@@ -46,6 +46,16 @@ def arrow_keys():
             # P.S. Without this, program was using half my cpu, I would reccomend not removing this
                 
 def general_gameplay():
+    settings = load_settings()
+    if settings.getboolean("Settings", "autobuyupgradestate"):
+        cooldown_activated = True
+        print("Cooldown activated: True")
+        auto_upgrades_cooldown = 60
+        timer = time.time()
+    else:
+        cooldown_activated = False
+        print("Cooldown activated: False")
+        
     while not event.is_set():  # Check the event status
         time.sleep(0.1)
         settings = load_settings()
@@ -61,7 +71,6 @@ def general_gameplay():
                         chest_hunt()
             
             print("Checking For Megahorde")
-            #pyautogui.moveTo(window.left + 419, window.top + 323)
             if pixel_search_in_window((121,117,126), 417, 421, 315, 330, shade=0) is not None:
                 Rage_When_Horde()
                 print("(121,117,126)")
@@ -71,7 +80,32 @@ def general_gameplay():
                 print("(98,97,106)")
                 print("Shade 10")
 
+            # Portals
             CyclePortals()
+            
+            # Auto Buy Equipment/Upgrades
+            if cooldown_activated is True:
+                if settings.getboolean("Settings", "autobuyupgradestate") is False:
+                    cooldown_activated = False
+                    print("Cooldown activated: False")
+            
+            if settings.getboolean("Settings", "autobuyupgradestate"):
+                print("Checking Auto Buy Upgrade")
+                if not cooldown_activated:
+                    cooldown_activated = True
+                    auto_upgrades_cooldown = 300
+                    timer = time.time()
+                    print("Cooldown activated: True")
+                    
+                if auto_upgrades_cooldown < (time.time() - timer):
+                    print("Buy Equipment")
+                    auto_upgrades_cooldown = 300
+                    timer = time.time()
+                    # Check if the Idle Slayer window is focused
+                    active_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+                    if active_window_title == "Idle Slayer":
+                        # Call BuyEquipment() function
+                        buy_equipment()
             
             # Collect Silver boxes
             pixel_position = pixel_search_in_window((255, 192, 0), 560, 730, 30, 55,shade=10)
@@ -100,9 +134,12 @@ def Rage():
     keyboard.press_and_release('e')
     
 def get_idle_slayer_window():
-    # Find the Idle Slayer window by its title
-    window = gw.getWindowsWithTitle("Idle Slayer")[0]
-    return window
+    while True:
+        # Find the Idle Slayer window by its title
+        idle_slayer_windows = gw.getWindowsWithTitle("Idle Slayer")
+        if idle_slayer_windows:
+            return idle_slayer_windows[0]
+        time.sleep(1)  # Wait for 1 second before checking again
 
 def pixel_search_in_window(color, left, right, top, bottom, shade=None):
     window = get_idle_slayer_window()
@@ -191,16 +228,17 @@ def chest_hunt():
     
     for y in range(3):
         for x in range(10):
+            adjusted_saver_y = saver_y + 43 if saver_y != 850 else saver_y - 27
             # After opening 2 chests, open saver
             if count == 2 and saver_x > 0:
-                pyautogui.click(saver_x + 32, ((saver_y + 43) if saver_y != 850 else (saver_y - 27)))
+                pyautogui.click(saver_x + 32, adjusted_saver_y)
                 if settings.getboolean("Settings", "nolockpickingstate"):
                     time.sleep(1.5)
                 else:
                     time.sleep(0.55)
             
             # Skip saver no matter what
-            if (pixel_y - 23) == ((saver_y + 43) if saver_y != 850 else (saver_y - 27)) and (pixel_x + 33) == (saver_x + 32):
+            if (pixel_y - 23) == adjusted_saver_y and (pixel_x + 33) == (saver_x + 32):
                 if count < 2:  # Go to the next chest if saver is the first two chests
                     print("count less than 2: Skipping saver")
                     pixel_x += 95
@@ -226,7 +264,7 @@ def chest_hunt():
                 print("exit x")
                 break
             
-            time.sleep(0.5)
+            time.sleep(0.75)
             # Wait more based on conditions
             sleep_time = 0
             if pixel_search_in_window((255,0,0), 470, 810, 180, 230, shade=1) is not None:
@@ -257,6 +295,108 @@ def chest_hunt():
     with open(settings_file_path, "w") as configfile:
         settings.write(configfile)
     print(chesthuntactivestate)
+    
+def buy_equipment():   
+    window = get_idle_slayer_window()
+    # Close Shop window if open
+    pyautogui.click(window.left + 1244, window.top + 712)
+    time.sleep(0.15)
+    #time.sleep(2)
+    
+    # Open shop window
+    pyautogui.click(window.left + 1163, window.top + 655)
+    time.sleep(0.15)
+    #time.sleep(2)
+    
+    # Search for the white pixel to confirm shop window is open
+    if pyautogui.pixelMatchesColor(window.left + 807, window.top + 142, (255, 255, 255)):
+        # Click on armor tab
+        pyautogui.click(window.left + 850, window.top + 690)
+        time.sleep(0.05)
+        
+        # Click Max buy
+        pyautogui.click(window.left + 1180, window.top + 636, clicks=4, interval=0.01)
+        
+        # Check if green buy box is present
+        if pyautogui.pixelMatchesColor(window.left + 1257, window.top + 340, (17, 170, 35)):
+            # Buy sword
+            pyautogui.click(window.left + 1200, window.top + 200, clicks=5)
+        else:
+            # Click Bottom of scroll bar
+            pyautogui.click(window.left + 1253, window.top + 592, clicks=5, interval=0.01)
+            time.sleep(0.2)
+            
+            # Buy last item
+            pyautogui.click(window.left + 1200, window.top + 550, clicks=5, interval=0.01)
+            
+            # Click top of scroll bar
+            pyautogui.click(window.left + 1253, window.top + 170, clicks=5, interval=0.01)
+            time.sleep(0.2)
+        
+        # Buy 50 items
+        pyautogui.click(window.left + 1100, window.top + 636, clicks=5, interval=0.01)
+        
+        # Move to Scroll Bar
+        pyautogui.moveTo(window.left + 1253, window.top + 170)
+            
+        while True:
+            # Check for green buy boxes
+            green_location = pixel_search_in_window(((17, 170, 35)), 1160, 1161, 170, 590, shade=0)
+            print(green_location)
+            if green_location is not None:
+                print("Green Box Found")
+                # Click on armor tab
+                pyautogui.click(window.left + 850, window.top + 690)
+                
+                # Click Green buy box
+                pyautogui.click(window.left + green_location[0], window.top + green_location[1], clicks=5, interval=0.01)
+            else:
+                print("Scroll")
+                # Scroll
+                pyautogui.scroll(-40)
+                
+                # Check gray scroll bar
+                gray_scroll_bar = pyautogui.pixelMatchesColor(window.left + 1253, window.top + 597, (214, 214, 214))
+                if not gray_scroll_bar:
+                    break
+                time.sleep(0.01)
+        buy_upgrade()
+        
+def buy_upgrade():
+    window = get_idle_slayer_window()
+    # Navigate to upgrade and scroll up
+    pyautogui.click(window.left + 927, window.top + 683)
+    time.sleep(0.15)
+    # Top of scrollbar
+    pyautogui.click(window.left + 1253, window.top + 170, clicks=5, interval=0.01)
+    time.sleep(0.4)
+    something_bought = False
+    y = 170
+    while True:
+        # Check if RandomBox Magnet is next upgrade
+        if pixel_search_in_window((244, 180, 27), 882, 909, y, (y +72), shade=0):
+            y += 96
+            print("RandomBox Magnet")
+        # Check if RandomBox Magnet is next upgrade
+        elif pixel_search_in_window((228, 120, 255), 882, 909, y, (y +72), shade=0):
+            y += 96
+            print("RandomBox Magnet 2")
+        elif pixel_search_in_window((247, 160, 30), 850, 851, y, (y +72), shade=0):
+        #pyautogui.pixelMatchesColor(window.left + 850, window.top + y, (247, 160, 30), tolerance=10):
+            y += 96
+        elif not pyautogui.pixelMatchesColor(window.left + 1180, window.top + (y + 10), (17, 170, 35)) and not pyautogui.pixelMatchesColor(window.left + 1180, window.top + (y + 10), (16, 163, 34)):
+            print("Break")
+            break
+        else:
+            print("Buy Upgrade")
+            something_bought = True
+            # Click green buy
+            pyautogui.click(window.left + 1180, window.top + y)
+            time.sleep(0.05)
+    if something_bought:
+        buy_equipment()
+    else:
+        pyautogui.click(window.left + 1222, window.top + 677)
 
 def stop_threads():
     #os._exit(0) # Used to close program when coding. Compiled script does not need this
