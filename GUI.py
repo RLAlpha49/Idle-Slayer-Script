@@ -29,10 +29,10 @@ log_file_path = os.path.join(logs_dir, "log.txt")
 default_settings = {
     "paused": "False", "jumpratevalue": "150", 
     "autobuyupgradestate": "False", "cycleportalsstate": "False","disableragestate": "False", 
-    "skipbonusstagestate": "False", "nolockpickingstate": "False","wipstate": "False", 
+    "skipbonusstagestate": "True", "nolockpickingstate": "False", 
     "craftsoulbonusstate": "False", "dimensionalstate": "False","craftragepillstate": "False", 
     "disableragehordestate": "False", "nolockpicking100state": "False", "craftdimensionalstaffstate": "False",
-    "chesthuntactivestate": "False"
+    "chesthuntactivestate": "False", "cycleportalcount": "1"
 }
 
 # Check if the log file exists, and create it if not
@@ -183,7 +183,7 @@ class App(customtkinter.CTk):
 
         # Update the checkbox states in the Settings section
         checkbox_names = ["Auto Buy Upgrade", "Cycle Portals", "Disable Rage Horde",
-                        "Skip Bonus Stage", "No Lockpicking100", "WIP",
+                        "Skip Bonus Stage", "No Lockpicking100", "Rage Soul Bonus",
                         "Craft Soul Bonus", "Craft dimensional Staff", "Craft Rage Pill"]
         for col, checkbox_column in enumerate(self.checkboxes):
             for row, checkbox in enumerate(checkbox_column, start=1):
@@ -240,13 +240,13 @@ class App(customtkinter.CTk):
         label_texts = ["General", "MiniGames", "Crafting"]
         checkbox_texts = [
             ["Auto Buy Upgrade", "Cycle Portals", "Disable Rage Horde"],
-            ["Skip Bonus Stage", "No Lockpicking100", "WIP"],
+            ["Skip Bonus Stage", "No Lockpicking100", "Rage Soul Bonus"],
             ["Craft Soul Bonus", "Craft dimensional Staff", "Craft Rage Pill"]
         ]
         self.checkboxes = []  # Create a list to hold checkbox references
         checkbox_tooltips = [
-            ["Tooltip for Auto Buy Upgrade (WIP)", "Cycle's through portal whenever available", "Tooltip for Disable Rage Horde (WIP)"],
-            ["Tooltip for Skip Bonus Stage (WIP)", "Check if you have Lockpicking100, for faster chesthunts", "Tooltip for WIP"],
+            ["Will automatically buy equipment/upgrades", "Cycle's through portal whenever available", "Will not rage at megahorde without a soul bonus"],
+            ["Will go through bonus stage letting time run out", "Check if you have Lockpicking100, for faster chesthunts", "Will rage when you have a soul bonus"],
             ["Tooltip for Craft Soul Bonus (WIP)", "Tooltip for Craft dimensional Staff (WIP)", "Tooltip for Craft Rage Pill (WIP)"]
         ]
 
