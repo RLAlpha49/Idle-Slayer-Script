@@ -44,8 +44,9 @@ def get_idle_slayer_window():
 def pixel_search_in_window(color, left, right, top, bottom, shade=None):
     window = get_idle_slayer_window()
     screenshot = ImageGrab.grab(bbox=(window.left, window.top, window.left + 1280, window.top + 720))
-
-    for x in range(left, right):
+    
+    if left == right:
+        x = left
         for y in range(top, bottom):
             pixel_color = screenshot.getpixel((x, y))
             # Used to find different pixel rgb values within a certain area. I use this for finding out what rgb values to search for in the script.
@@ -54,7 +55,18 @@ def pixel_search_in_window(color, left, right, top, bottom, shade=None):
             
             if color_match(pixel_color, color, shade):
                 return x, y
-    return None
+        return None
+    else:
+        for x in range(left, right):
+            for y in range(top, bottom):
+                pixel_color = screenshot.getpixel((x, y))
+                # Used to find different pixel rgb values within a certain area. I use this for finding out what rgb values to search for in the script.
+                if color == (0, 0, 0):
+                    print(f"Pixel at ({x}, {y}) - Color: {pixel_color}")
+                
+                if color_match(pixel_color, color, shade):
+                    return x, y
+        return None
 
 def color_match(actual_color, target_color, shade):
     for i in range(3):
@@ -102,6 +114,17 @@ def general_gameplay():
         if not settings.getboolean("Settings", "paused"):
             window = get_idle_slayer_window()
             
+            # Claim Quests
+            print("Checking For Quests...")
+            if pyautogui.pixelMatchesColor(window.left + 1130, window.top + 610, (203, 203, 76), tolerance=1):
+                claim_quests()
+                
+            # Collect Minions
+            print("Checking For Minions...")
+            if pyautogui.pixelMatchesColor(window.left + 99, window.top + 113, (255, 255, 122)):
+                collect_minion()
+            
+            # Chesthunt
             print("Checking For Chesthunt...")
             if pixel_search_in_window((255, 255, 255), 470, 810, 180, 230,shade=0) is not None:
                 if pixel_search_in_window((246, 143, 55), 180, 260, 265, 330,shade=1) is not None:
@@ -114,8 +137,8 @@ def general_gameplay():
             if pyautogui.pixelMatchesColor(window.left + 419, window.top + 323, (223, 222, 224)):
                 Rage_When_Horde()
             
-            #Rage When Soul Bonus
-            if settings.getboolean("Settings", "ragesoulbonusstate"):  
+            # Rage When Soul Bonus
+            if settings.getint("Settings", "ragestate") == 3:  
                 print("Checking For Soul Bonus...")
                 if pixel_search_in_window((168, 109, 10), 625, 629, 143, 214, shade=0) is not None:
                     keyboard.press_and_release('e')
@@ -149,6 +172,8 @@ def general_gameplay():
                     if active_window_title == "Idle Slayer":
                         # Call BuyEquipment() function
                         buy_equipment()
+                        if settings.getboolean("Settings", "paused"):
+                            update_settings("paused")
             
             # Bonus Stage
             print("Checking For Bonus Stage...")
@@ -165,17 +190,7 @@ def general_gameplay():
                 pyautogui.leftClick()
                 write_log_entry(f"Silver Box Collected")
             
-            # Collect Minions
-            print("Checking For Minions...")
-            if pyautogui.pixelMatchesColor(window.left + 99, window.top + 113, (255, 255, 122)):
-                collect_minion()
-            
-            # Claim Quests
-            print("Checking For Quests...")
-            if pyautogui.pixelMatchesColor(window.left + 1130, window.top + 610, (203, 203, 76), tolerance=1):
-                claim_quests()
-            
-            time.sleep(0.5) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
+            time.sleep(0.3) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
            
 # Collect & Send Minions
 def collect_minion():
@@ -287,11 +302,11 @@ def Rage_When_Horde():
     #    if settings.getboolean("Settings", "craftsoulbonusstate"):
     #        buy_temp_item()
             
-    if settings.getboolean("Settings", "disableragehordestate"):
+    if settings.getint("Settings", "ragestate") == 1:
         if SoulBonusActive:
             write_log_entry("MegaHorde Rage with SoulBonus")
             keyboard.press_and_release('e')
-    else:
+    elif settings.getint("Settings", "ragestate") == 2:
         write_log_entry(f"Rage MegaHorde")
         keyboard.press_and_release('e')
     
@@ -384,9 +399,9 @@ def chest_hunt():
     window = get_idle_slayer_window()
     
     if settings.getboolean("Settings", "nolockpicking100state"):
-        time.sleep(4)
+        time.sleep(5)
     else:
-        time.sleep(2)
+        time.sleep(2.5)
     
     saver_x = 0
     saver_y = 0
@@ -414,9 +429,14 @@ def chest_hunt():
     print(f"Saver x: {saver_x}, Saver y: {saver_y}")
     print(f"Saver Chest: {saver_x + 32}, {saver_y + 43}")
     
+    if saver_y == 599 or saver_y == 694 or saver_y == 789:
+        adjusted_saver_y = saver_y + 43
+    else:
+        adjusted_saver_y = saver_y -27
+    
     for y in range(3):
         for x in range(10):
-            adjusted_saver_y = saver_y + 43 if saver_y != 850 or saver_y != 950 or saver_y != 859 else saver_y - 27
+            #adjusted_saver_y = saver_y + 43 if saver_y != 850 or saver_y != 950 or saver_y != 859 else saver_y - 27
             # After opening 2 chests, open saver
             if count == 2 and saver_x > 0:
                 pyautogui.click(saver_x + 32, adjusted_saver_y)
@@ -484,24 +504,17 @@ def chest_hunt():
 # Auto Buy Equipment
 def buy_equipment():   
     settings = load_settings()
-    paused = settings.getboolean("Settings", "paused")
-    paused = not paused
-        
-    # Update the "paused" setting in the settings file
-    settings.set("Settings", "paused", str(paused))
-    with open(settings_file_path, "w") as configfile:
-        settings.write(configfile)
+    if not settings.getboolean("Settings", "paused"):
+        update_settings("paused")
         
     window = get_idle_slayer_window()
     # Close Shop window if open
     pyautogui.click(window.left + 1244, window.top + 712)
     time.sleep(0.15)
-    #time.sleep(2)
     
     # Open shop window
     pyautogui.click(window.left + 1163, window.top + 655)
     time.sleep(0.15)
-    #time.sleep(2)
     
     # Search for the white pixel to confirm shop window is open
     if pyautogui.pixelMatchesColor(window.left + 807, window.top + 142, (255, 255, 255)):
@@ -518,15 +531,15 @@ def buy_equipment():
             pyautogui.click(window.left + 1200, window.top + 200, clicks=5)
         else:
             # Click Bottom of scroll bar
-            pyautogui.click(window.left + 1253, window.top + 592, clicks=5, interval=0.01)
-            time.sleep(0.2)
+            pyautogui.click(window.left + 1253, window.top + 592, clicks=10, interval=0.01)
+            time.sleep(0.3)
             
             # Buy last item
-            pyautogui.click(window.left + 1200, window.top + 550, clicks=5, interval=0.01)
+            pyautogui.click(window.left + 1200, window.top + 590, clicks=5, interval=0.01)
             
             # Click top of scroll bar
-            pyautogui.click(window.left + 1253, window.top + 170, clicks=5, interval=0.01)
-            time.sleep(0.2)
+            pyautogui.click(window.left + 1253, window.top + 170, clicks=10, interval=0.01)
+            time.sleep(0.3)
         
         # Buy 50 items
         pyautogui.click(window.left + 1100, window.top + 636, clicks=5, interval=0.01)
@@ -536,7 +549,7 @@ def buy_equipment():
             
         while True:
             # Check for green buy boxes
-            green_location = pixel_search_in_window(((17, 170, 35)), 1160, 1161, 170, 590, shade=0)
+            green_location = pixel_search_in_window(((17, 170, 35)), 1160, 1160, 170, 600, shade=0)
             if green_location is not None:
                 # Click on armor tab
                 pyautogui.click(window.left + 850, window.top + 690)
@@ -547,13 +560,12 @@ def buy_equipment():
                 # Scroll
                 pyautogui.scroll(-300)
                 
-                # Check gray scroll bar
-                gray_scroll_bar = pyautogui.pixelMatchesColor(window.left + 1253, window.top + 597, (214, 214, 214))
-                if not gray_scroll_bar:
-                    break
+            # Check gray scroll bar
+            gray_scroll_bar = pyautogui.pixelMatchesColor(window.left + 1253, window.top + 597, (214, 214, 214))
+            if not gray_scroll_bar:
+                break
             
         # Update the "paused" setting in the settings file
-
         update_settings("paused")
             
         buy_upgrade()
@@ -571,16 +583,13 @@ def buy_upgrade():
     y = 170
     while True:
         # Check if RandomBox Magnet is next upgrade
-        if pixel_search_in_window((244, 180, 27), 882, 909, (y + 20), (y + 55), shade=0):
+        if pyautogui.pixelMatchesColor(window.left + 888, window.top + (y + 25), (244, 180, 27)):
             y += 96
             print("RandomBox Magnet")
         # Check if RandomBox Magnet is next upgrade
-        elif pixel_search_in_window((228, 120, 255), 882, 909, (y + 20), (y + 55), shade=0):
+        elif pyautogui.pixelMatchesColor(window.left + 888, window.top + (y + 25), (228, 120, 255)):
             y += 96
             print("RandomBox Magnet 2")
-        #elif pixel_search_in_window((247, 160, 30), 850, 851, y, (y +72), shade=0):
-        #pyautogui.pixelMatchesColor(window.left + 850, window.top + y, (247, 160, 30), tolerance=10):
-            #y += 96
         elif not pyautogui.pixelMatchesColor(window.left + 1180, window.top + (y + 10), (17, 170, 35)) and not pyautogui.pixelMatchesColor(window.left + 1180, window.top + (y + 10), (16, 163, 34)):
             print("Break")
             break
@@ -590,13 +599,12 @@ def buy_upgrade():
             # Click green buy
             pyautogui.click(window.left + 1180, window.top + y)
     if something_bought:
-        if not settings.getboolean("Settings", "paused"):
-            update_settings("paused")
         buy_equipment()
     else:
         pyautogui.click(window.left + 1222, window.top + 677)
-        if settings.getboolean("Settings", "paused"):
-            update_settings("paused")
+        
+    if settings.getboolean("Settings", "paused"):
+        update_settings("paused")
 
 def stop_threads():
     #os._exit(0) # Used to close program when coding. Compiled script does not need this
@@ -610,13 +618,12 @@ def main():
 if __name__ == "__main__":
     settings = load_settings()
     settings_file_path = os.path.join(logs_dir, "settings.txt")
-    settings.set("Settings", "chesthuntactivestate", str(False))
-    with open(settings_file_path, "w") as configfile:
-        settings.write(configfile)
+
+    if settings.getboolean("Settings", "chesthuntactivestate"):
+        update_settings("chesthuntactivestate")
     
-    settings.set("Settings", "paused", str(False))
-    with open(settings_file_path, "w") as configfile:
-        settings.write(configfile)
+    if settings.getboolean("Settings", "paused"):
+        update_settings("paused")
     
     main_thread = threading.Thread(target=main)
     main_thread.start()

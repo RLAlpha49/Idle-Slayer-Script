@@ -55,7 +55,10 @@ class MyTabView(customtkinter.CTkTabview):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
-        self.configure(height=200)
+        self.configure(height=155, width=740)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid(row=1, column=0, sticky="nsew")
         
         # create tabs
         self.add("General")
@@ -74,35 +77,35 @@ class MyTabView(customtkinter.CTkTabview):
         tab = self.tab(tab_name)
 
         general_description_label = customtkinter.CTkLabel(master=tab, text="Jump Rate(ms)", font=customtkinter.CTkFont(size=16, weight="bold"))
-        general_description_label.grid(row=0, column=0, padx=20, pady=(0, 10))
+        general_description_label.grid(row=0, column=0, padx=20, pady=(0, 5))
 
         jump_rate_value = self.settings.get("Settings", "JumpRateValue", fallback="150")
 
         self.general_text_box = customtkinter.CTkTextbox(master=tab, height=5, width=75)
-        self.general_text_box.grid(row=1, column=0, padx=20, pady=(0, 10))
+        self.general_text_box.grid(row=1, column=0, padx=20, pady=(0, 5))
         self.general_text_box.insert("1.0", jump_rate_value)
         
 
-        update_button = customtkinter.CTkButton(master=tab, text="Update", command=self.update_general_text)
-        update_button.grid(row=2, column=0, padx=20, pady=(0, 10))
+        update_button = customtkinter.CTkButton(master=tab, text="Update Settings", command=self.update_general_text)
+        update_button.grid(row=2, column=0, padx=20, pady=(0, 0))
 
         label_texts = ["General", "MiniGames", "Crafting"]
         checkbox_texts = [
-            ["Auto Buy Upgrade", "Cycle Portals", "Disable Rage Horde"],
-            ["Skip Bonus Stage", "No Lockpicking100", "Rage Soul Bonus"],
+            ["Auto Buy Upgrade", "Cycle Portals"],
+            ["Skip Bonus Stage", "No Lockpicking100"],
             ["Craft dimensional Staff", "Craft bidimensional Staff"]
         ]
         
         self.checkboxes = []
 
         checkbox_tooltips = [
-            ["Will automatically buy equipment/upgrades", "Cycle's through portal whenever available", "Will not rage at megahorde without a soul bonus"],
-            ["Will go through bonus stage letting time run out", "Check if you have Lockpicking100, for faster chesthunts", "Will rage when you have a soul bonus"],
+            ["Will automatically buy equipment/upgrades", "Cycle's through portal whenever available"],
+            ["Will go through bonus stage letting time run out", "Check if you have Lockpicking100, for faster chesthunts"],
             ["Tooltip for Craft dimensional Staff (WIP)", "Tooltip for Craft bidimensional Staff (WIP)"]
         ]
 
         for col, label_text in enumerate(label_texts, start=0):
-            label = customtkinter.CTkLabel(master=tab, text=label_text, font=customtkinter.CTkFont(size=14, weight="bold"))
+            label = customtkinter.CTkLabel(master=tab, text=label_text, font=customtkinter.CTkFont(size=16, weight="bold"))
             label.grid(row=0, column=col + 1, padx=20, pady=(0, 5))
             
             checkbox_column = []  # Create a list to hold checkboxes in this column
@@ -129,32 +132,32 @@ class MyTabView(customtkinter.CTkTabview):
 
         # Create the first label in the first row
         label1 = customtkinter.CTkLabel(master=tab, text="Rage", font=customtkinter.CTkFont(size=16, weight="bold"))
-        label1.grid(row=0, column=0, padx=20, pady=(10, 10), sticky="w")
+        label1.grid(row=0, column=0, padx=20, pady=(0, 0), sticky="w")
 
         # Create a combobox under the first label with 3 different options
         combobox_options = ["Rage at Megahorde with Soul Bonus", "Rage at Megahorde", "Rage with Soul Bonus"]
         self.combobox = customtkinter.CTkComboBox(master=tab, values=combobox_options, state="readonly", command=self.update_combobox_value)
-        self.combobox.grid(row=1, column=0, padx=20, pady=(0, 10), sticky="w")
+        self.combobox.grid(row=1, column=0, padx=20, pady=(0, 5), sticky="w")
 
         # Set the current ragestate setting value as the selected option
         current_ragestate = settings.getint("Settings", "ragestate", fallback=1)
         self.combobox.set(combobox_options[current_ragestate - 1])
         
         self.checkbox1_var = customtkinter.IntVar()
-        checkbox1 = customtkinter.CTkCheckBox(master=tab, text="Craft Soul Bonus", variable=self.checkbox1_var, command=self.update_checkbox_states)
+        checkbox1 = customtkinter.CTkCheckBox(master=tab, text="Craft Soul Bonus", variable=self.checkbox1_var, command=self.update_checkbox_states, font=customtkinter.CTkFont(size=13), checkbox_height=20, checkbox_width=20, height=20)
         checkbox1.grid(row=2, column=0, padx=20, pady=(0, 5), sticky="w")
         self.checkbox1_var.set(settings.getboolean("Settings", "CraftSoulBonusState", fallback=False))
         CTkToolTip(checkbox1, message="Will craft Soul Bonus when rage is activated\nWill do this regardless of rage setting")
 
         self.checkbox2_var = customtkinter.IntVar()
-        checkbox2 = customtkinter.CTkCheckBox(master=tab, text="Craft Rage Pill", variable=self.checkbox2_var, command=self.update_checkbox_states)
-        checkbox2.grid(row=3, column=0, padx=20, pady=(0, 10), sticky="w")
+        checkbox2 = customtkinter.CTkCheckBox(master=tab, text="Craft Rage Pill", variable=self.checkbox2_var, command=self.update_checkbox_states, font=customtkinter.CTkFont(size=13), checkbox_height=20, checkbox_width=20, height=20)
+        checkbox2.grid(row=3, column=0, padx=20, pady=(0, 0), sticky="w")
         self.checkbox2_var.set(settings.getboolean("Settings", "CraftRagePillState", fallback=False))
         CTkToolTip(checkbox2, message="Will craft Rage Pill if rage has cooldown\nWill do this regardless of rage setting")
     
         # Create the second label in the first row
         label2 = customtkinter.CTkLabel(master=tab, text="Auto Ascension (%)", font=customtkinter.CTkFont(size=16, weight="bold"))
-        label2.grid(row=0, column=1, padx=20, pady=(10, 10), sticky="w")
+        label2.grid(row=0, column=1, padx=20, pady=(0, 0), sticky="w")
         CTkToolTip(label2, message= "Percentage of total slayer points to ascend\nSlider Tooltip may not display exact value, for exact value change setting in settings file")
 
         # Create the slider under the second label
@@ -165,7 +168,7 @@ class MyTabView(customtkinter.CTkTabview):
         
         # Create checkbox for Ascension Slider
         self.checkbox3_var = customtkinter.IntVar()
-        checkbox3 = customtkinter.CTkCheckBox(master=tab, text="Auto Ascension", variable=self.checkbox3_var, command=self.update_checkbox_states)
+        checkbox3 = customtkinter.CTkCheckBox(master=tab, text="Auto Ascension", variable=self.checkbox3_var, command=self.update_checkbox_states, font=customtkinter.CTkFont(size=13), checkbox_height=20, checkbox_width=20, height=20)
         checkbox3.grid(row=2, column=1, padx=20, pady=(0, 5), sticky="w")
         self.checkbox3_var.set(settings.getboolean("Settings", "autoascensionstate", fallback=False))
         CTkToolTip(checkbox3, message="Activate/Deactivate Auto Ascension")
@@ -265,12 +268,14 @@ class App(customtkinter.CTk):
         
         # configure window
         self.title("AutoSlayer")
-        self.geometry(f"{940}x{210}") 
+        self.geometry(f"{930}x{160}") 
 
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure((2, 3), weight=0)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=2)
 
         # Create frames for different sections
         self.home_frame = customtkinter.CTkFrame(self, fg_color="transparent")
@@ -300,7 +305,10 @@ class App(customtkinter.CTk):
         for row, text in enumerate(button_texts, start=0):
             
             button = customtkinter.CTkButton(self.sidebar_frame, text=text, command=lambda t=text: self.show_text(t), bg_color="transparent", fg_color="transparent", border_width=1, corner_radius=0)
-            button.grid(row=row, column=0, padx=20, sticky="w")
+            if text == "Home":
+                button.grid(row=row, column=0, padx=20, pady=(10,0), sticky="w")
+            else:
+                button.grid(row=row, column=0, padx=20, sticky="w")
             
             # Create a CTkToolTip instance for each button using the description from the dictionary
             tooltip = CTkToolTip(button, message=button_descriptions[text])
@@ -314,7 +322,7 @@ class App(customtkinter.CTk):
         
         # Create the "Exit" button
         self.exit_button = customtkinter.CTkButton(self.sidebar_frame, text="Exit", command=self.on_closing, bg_color="transparent", fg_color="transparent", border_width=1, corner_radius=0)
-        self.exit_button.grid(row=5, column=0, padx=20, sticky="w")
+        self.exit_button.grid(row=5, column=0, padx=20, pady=(0,10), sticky="w")
         
         # Create a CTkToolTip instance for the "Exit" button
         exit_tooltip = CTkToolTip(self.exit_button, message="Exit the application")
@@ -378,36 +386,6 @@ class App(customtkinter.CTk):
     def open_link2(self):
         webbrowser.open("https://github.com/RLAlpha49")
             
-    def update_general_text(self):
-        new_jump_rate_value = self.general_text_box.get("1.0", "end-1c")
-
-        if not new_jump_rate_value.isdigit():
-            messagebox.showerror("Invalid Input", "Jump rate must be a number.")
-            return
-    
-        current_jump_rate_value = self.settings.get("Settings", "JumpRateValue", fallback="")
-        if new_jump_rate_value != current_jump_rate_value:
-            self.settings.set("Settings", "JumpRateValue", new_jump_rate_value)
-            write_log_entry(f"Jump rate updated to: {new_jump_rate_value}")
-
-        # Update the checkbox states in the Settings section
-        checkbox_names = ["Auto Buy Upgrade", "Cycle Portals", "Disable Rage Horde",
-                        "Skip Bonus Stage", "No Lockpicking100", "Rage Soul Bonus",
-                        "Craft Soul Bonus", "Craft dimensional Staff", "Craft Rage Pill"]
-        for col, checkbox_column in enumerate(self.checkboxes):
-            for row, checkbox in enumerate(checkbox_column, start=1):
-                checkbox_state_key = checkbox.cget("text").replace(" ", "") + "State"
-                new_checkbox_state = bool(int(checkbox.get()))
-                current_checkbox_state = self.settings.get("Settings", checkbox_state_key, fallback="False")
-
-                if new_checkbox_state != (current_checkbox_state == "True"):
-                    self.settings.set("Settings", checkbox_state_key, str(new_checkbox_state))
-                    write_log_entry(f"Checkbox '{checkbox_names[col * 3 + row - 1]}' updated to: {new_checkbox_state}")
-
-        # Save the changes to the configuration file
-        with open(settings_file_path, "w") as configfile:
-            self.settings.write(configfile)
-            
     def show_text(self, button_text):
         if button_text == "Home":
             self.show_frame(self.home_frame)
@@ -425,61 +403,6 @@ class App(customtkinter.CTk):
             self.current_frame.grid_forget()  # Hide the current frame
         frame_to_show.grid(row=1, column=1, columnspan=3, padx=(0, 0), pady=(0, 0), sticky="nsew")
         self.current_frame = frame_to_show
-
-    def add_content_to_tab(self, tab):
-        self.general_description_label = customtkinter.CTkLabel(master=self.general_frame(tab), text="Jump Rate(ms)", font=customtkinter.CTkFont(size=16, weight="bold"))
-        self.general_description_label.grid(row=0, column=0, padx=20, pady=(0, 10))
-
-        # Retrieve the JumpRateValue from the settings
-        jump_rate_value = self.settings.get("Settings", "JumpRateValue", fallback="150")
-
-        self.general_text_box = customtkinter.CTkTextbox(master=tab, height=5, width=75)
-        self.general_text_box.grid(row=1, column=0, padx=20, pady=(0, 10))
-        
-        # Set the retrieved JumpRateValue as the placeholder text
-        self.general_text_box.insert("1.0", jump_rate_value)
-        
-        # Create a CTkToolTip instance for the text box
-        CTkToolTip(self.general_text_box, message="Enter your desired Jump Rate in milliseconds(ms)")
-        
-        self.update_button = customtkinter.CTkButton(master=tab, text="Update", command=self.update_general_text)
-        self.update_button.grid(row=2, column=0, padx=20, pady=(0, 10))
-        
-        # Create labels and checkboxes in the second and third columns
-        label_texts = ["General", "MiniGames", "Crafting"]
-        checkbox_texts = [
-            ["Auto Buy Upgrade", "Cycle Portals", "Disable Rage Horde"],
-            ["Skip Bonus Stage", "No Lockpicking100", "Rage Soul Bonus"],
-            ["Craft Soul Bonus", "Craft dimensional Staff", "Craft Rage Pill"]
-        ]
-        self.checkboxes = []  # Create a list to hold checkbox references
-        checkbox_tooltips = [
-            ["Will automatically buy equipment/upgrades", "Cycle's through portal whenever available", "Will not rage at megahorde without a soul bonus"],
-            ["Will go through bonus stage letting time run out", "Check if you have Lockpicking100, for faster chesthunts", "Will rage when you have a soul bonus"],
-            ["Tooltip for Craft Soul Bonus (WIP)", "Tooltip for Craft dimensional Staff (WIP)", "Tooltip for Craft Rage Pill (WIP)"]
-        ]
-
-        for col, label_text in enumerate(label_texts, start=0):
-            label = customtkinter.CTkLabel(master=tab, text=label_text, font=customtkinter.CTkFont(size=14, weight="bold"))
-            label.grid(row=0, column=col + 1, padx=20, pady=(0, 5))
-            
-            checkbox_column = []  # Create a list to hold checkboxes in this column
-            for row, checkbox_text in enumerate(checkbox_texts[col], start=1):
-                checkbox = customtkinter.CTkCheckBox(master=tab, text=checkbox_text, font=customtkinter.CTkFont(size=12))
-                checkbox.grid(row=row, column=col + 1, padx=20, pady=(0, 5), sticky="w")
-                
-                # Retrieve and set the state of each checkbox from the settings
-                checkbox_state_key = checkbox_text.replace(" ", "") + "State"
-                checkbox_state = self.settings.getboolean("Settings", checkbox_state_key, fallback=False)
-                if checkbox_state is True:
-                    checkbox.select()
-                
-                checkbox_tooltip = checkbox_tooltips[col][row - 1]  # Get the corresponding tooltip
-                CTkToolTip(checkbox, message=checkbox_tooltip)  # Create a CTkToolTip instance for each checkbox
-                
-                checkbox_column.append(checkbox)
-                
-            self.checkboxes.append(checkbox_column)  # Add the checkbox column to the checkboxes list
     
     def create_log_frame(self):
         # Add a label for statistics
