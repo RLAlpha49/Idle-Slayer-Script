@@ -101,8 +101,7 @@ def general_gameplay():
     if settings.getboolean("Settings", "autobuyupgradestate"):
         cooldown_activated = True
         print("Cooldown activated: True")
-        auto_upgrades_cooldown = 60
-        #auto_upgrades_cooldown = 300
+        auto_upgrades_cooldown = settings.getint("Settings", "autobuyvalue")
         timer = time.time()
     else:
         cooldown_activated = False
@@ -160,15 +159,13 @@ def general_gameplay():
                     print("Checking For Auto Buy Upgrade")
                     if not cooldown_activated:
                         cooldown_activated = True
-                        auto_upgrades_cooldown = 60
-                        #auto_upgrades_cooldown = 300
+                        auto_upgrades_cooldown = settings.getint("Settings", "autobuyvalue")
                         timer = time.time()
                         print("Cooldown activated: True")
                         
                     if auto_upgrades_cooldown < (time.time() - timer):
                         print("Buy Equipment")
-                        auto_upgrades_cooldown = 60
-                        #auto_upgrades_cooldown = 300
+                        auto_upgrades_cooldown = settings.getint("Settings", "autobuyvalue")
                         timer = time.time()
                         # Check if the Idle Slayer window is focused
                         active_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
