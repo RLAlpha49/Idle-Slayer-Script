@@ -24,3 +24,5 @@ build/AutoSlayer/localpycs/pyimod03_ctypes.pyc
 build/AutoSlayer/localpycs/pyimod04_pywin32.pyc
 build/AutoSlayer/localpycs/struct.pyc
 __pycache__/BonusStage.cpython-311.pyc
+dist/AutoSlayerLogs/log.txt
+dist/AutoSlayerLogs/settings.txt
