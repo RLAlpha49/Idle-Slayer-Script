@@ -517,6 +517,8 @@ class App(customtkinter.CTk):
         self.after_cancel(self.update_log_text_box)
         AutoSlayer.stop_threads() # Stop
         self.destroy()
+
+        
         
 
 

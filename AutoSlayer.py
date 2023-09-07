@@ -616,7 +616,7 @@ def buy_upgrade():
         update_settings("paused")
 
 def stop_threads():
-    #os._exit(0) # Used to close program when coding. Compiled script does not need this
+    os._exit(0)
     event.set()  # Set the event to stop the threads 
 
 def main():
