@@ -25,6 +25,7 @@ os.makedirs(logs_dir, exist_ok=True)
 # Use the logs_dir to construct file paths
 settings_file_path = os.path.join(logs_dir, "settings.txt")
 log_file_path = os.path.join(logs_dir, "log.txt")
+stats_file_path = os.path.join(logs_dir, "stats.txt")
 
 default_settings = {
     "paused": "False", 
@@ -39,7 +40,9 @@ default_settings = {
 # Check if the log file exists, and create it if not
 if not os.path.exists(log_file_path):
     with open(log_file_path, "w") as logfile:
+        write_log_entry(f"Script Directory: {base_dir}")
         write_log_entry(f"Log File: Created")
+        write_log_entry(f"Log Path: {log_file_path}")
     
 
 # Check if the settings file exists, and create it if not
@@ -48,8 +51,22 @@ if not os.path.exists(settings_file_path):
         configfile.write("[Settings]\n" +
                          "\n".join([f"{setting} = {default}" for setting, default in default_settings.items()]))
     write_log_entry(f"Settings File: Created")
-    write_log_entry(f"Script Directory: {base_dir}")
     write_log_entry(f"Settings Path: {settings_file_path}")
+    
+default_stats = {
+    "Rage with only MegaHorde": "0", "Rage with Soul Bonus": "0", "Rage with MegaHorde and Soul Bonus": "0",
+    "Claimed Quests": "0", "Claimed Minions": "0",
+    "ChestHunts": "0", "Perfect ChestHunts": "0",
+    "Collected Silver Boxes": "0", "Portals Cycled": "0", "Failed/Skipped Bonus Stages": "0",
+}
+
+# Check if the Stats file exists, and create it if not
+if not os.path.exists(stats_file_path):
+    with open(stats_file_path, "w") as configfile:
+        for setting, default in default_stats.items():
+            configfile.write(f"{setting}: {default}\n")
+    write_log_entry(f"Stats File: Created")
+    write_log_entry(f"Stats Path: {stats_file_path}")
 
 class MyTabView(customtkinter.CTkTabview):
     def __init__(self, master, **kwargs):
@@ -458,24 +475,42 @@ class App(customtkinter.CTk):
             log_contents = logfile.read()
             self.log_text_box.insert("1.0", log_contents)
             
+        
         update_log_textbox_thread = threading.Thread(target=self.update_log_text_box)
         update_log_textbox_thread.start()    
             
         #self.update_log_text_box()  # Call the function to start real-time updating
 
     def update_log_text_box(self):
-        while 1:
+        previous_log_contents = ""
+        previous_stats_contents = ""
+
+        while True:
             with open(log_file_path, "r") as logfile:
                 log_contents = logfile.read()
 
-                # Clear the existing contents and insert new log contents
+            with open(stats_file_path, "r") as statsfile:
+                stats_contents = statsfile.read()
+
+            if log_contents != previous_log_contents:
+                # Clear the existing log contents and insert new log contents
                 self.log_text_box.configure(state="normal")
-                self.log_text_box.delete("1.0", "end")  # Clear the existing contents
-                self.log_text_box.insert("1.0", log_contents)  # Insert log contents at the beginning
-                self.log_text_box.yview_moveto(1.0)  # Scroll to the bottom
-                self.log_text_box.configure(state="disabled")  # Set the text box back to disabled mode
+                self.log_text_box.delete("1.0", "end")
+                self.log_text_box.insert("1.0", log_contents)
+                self.log_text_box.yview_moveto(1.0)
+                self.log_text_box.configure(state="disabled")
+                previous_log_contents = log_contents
+
+            if stats_contents != previous_stats_contents:
+                # Clear the existing stats contents and insert new stats contents
+                self.stats_text_box.configure(state="normal")
+                self.stats_text_box.delete("1.0", "end")
+                self.stats_text_box.insert("1.0", stats_contents)
+                self.stats_text_box.yview_moveto(1.0)
+                self.stats_text_box.configure(state="disabled")
+                previous_stats_contents = stats_contents
+
             time.sleep(5)
-            #self.log_frame.after(5000, self.update_log_text_box)
     
     def on_closing(self):
         # Stop scheduled events and close the GUI window

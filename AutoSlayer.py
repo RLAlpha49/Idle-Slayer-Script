@@ -9,7 +9,7 @@ import win32gui
 import pyautogui
 import pygetwindow as gw
 from PIL import ImageGrab
-from Log import write_log_entry
+from Log import write_log_entry, increment_stat
 from BonusStage import bonus_stage
 
 running_threads = True
@@ -120,11 +120,13 @@ def general_gameplay():
                 print("Checking For Quests...")
                 if pyautogui.pixelMatchesColor(window.left + 1130, window.top + 610, (203, 203, 76), tolerance=1):
                     claim_quests()
+                    increment_stat("Claimed Quests")
                     
                 # Collect Minions
                 print("Checking For Minions...")
                 if pyautogui.pixelMatchesColor(window.left + 99, window.top + 113, (255, 255, 122)):
                     collect_minion()
+                    increment_stat("Claimed Minions")
                 
                 # Chesthunt
                 print("Checking For Chesthunt...")
@@ -133,6 +135,7 @@ def general_gameplay():
                         if pixel_search_in_window((173, 78, 26), 170, 260, 265, 330,shade=1) is not None:
                             print("Start Chest Hunt...")
                             chest_hunt()
+                            increment_stat("ChestHunts")
                 
                 # Rage When Megahorde
                 print("Checking For Megahorde...")
@@ -145,6 +148,7 @@ def general_gameplay():
                     if pixel_search_in_window((168, 109, 10), 625, 629, 143, 214, shade=0) is not None:
                         keyboard.press_and_release('e')
                         write_log_entry(f"Rage With Soul Bonus")
+                        increment_stat("Rage with Soul Bonus")
                     
                 # Portals
                 CyclePortals()
@@ -181,6 +185,8 @@ def general_gameplay():
                     if pyautogui.pixelMatchesColor(window.left + 638, window.top + 236, (255, 187, 49)):
                         if pyautogui.pixelMatchesColor(window.left + 775, window.top + 448, (255, 255, 255)):
                             bonus_stage(settings.getboolean("Settings", "skipbonusstagestate"))
+                            if settings.getboolean("Settings", "skipbonusstagestate") is True:
+                                increment_stat("Failed/Skipped Bonus Stages") 
 
                 # Collect Silver boxes
                 print("Checking For Silver Boxes...")
@@ -189,6 +195,7 @@ def general_gameplay():
                     pyautogui.moveTo(window.left + pixel_position[0], window.top + pixel_position[1])
                     pyautogui.leftClick()
                     write_log_entry(f"Silver Box Collected")
+                    increment_stat("Collected Silver Boxes") 
                 
                 time.sleep(0.3) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
         else:
@@ -308,9 +315,11 @@ def Rage_When_Horde():
     if settings.getint("Settings", "ragestate") == 1:
         if SoulBonusActive:
             write_log_entry("MegaHorde Rage with SoulBonus")
+            increment_stat("Rage with MegaHorde and Soul Bonus")
             keyboard.press_and_release('e')
     elif settings.getint("Settings", "ragestate") == 2:
         write_log_entry(f"Rage MegaHorde")
+        increment_stat("Rage with only MegaHorde")
         keyboard.press_and_release('e')
     
 # Checks Soul Bonus
@@ -390,6 +399,7 @@ def CyclePortals():
                 settings.write(configfile)
             
             write_log_entry(f"Portal Activated")
+            increment_stat("Portals Cycled")
             time.sleep(10)
       
 # Chest Hunt Minigame      
