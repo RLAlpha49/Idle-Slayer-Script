@@ -99,7 +99,7 @@ class MyTabView(customtkinter.CTkTabview):
         self.checkboxes = []
 
         checkbox_tooltips = [
-            ["Will automatically buy equipment/upgrades", "Cycle's through portal whenever available"],
+            ["Will automatically buy equipment/upgrades\nWill activate 10 seconds after turning on", "Cycle's through portal whenever available"],
             ["Will go through bonus stage letting time run out", "Check if you have Lockpicking100, for faster chesthunts"],
             ["Tooltip for Craft dimensional Staff (WIP)", "Tooltip for Craft bidimensional Staff (WIP)"]
         ]
@@ -311,8 +311,8 @@ class App(customtkinter.CTk):
         self.home_frame = customtkinter.CTkFrame(self, fg_color="transparent")
         self.general_frame = customtkinter.CTkFrame(self, fg_color="transparent")
         self.log_frame = customtkinter.CTkFrame(self, fg_color="transparent")
-        self.create_home_frame()
         self.create_general_frame_with_tabs()
+        self.create_home_frame()
         self.create_log_frame()
 
         # Initialize current_frame to the home_frame
@@ -440,7 +440,7 @@ class App(customtkinter.CTk):
         stats_label.grid(row=0, column=0, padx=20, pady=(0, 10), sticky="w")
 
         # Add a text box for displaying statistics
-        self.stats_text_box = customtkinter.CTkTextbox(self.log_frame, height=100, width=300)
+        self.stats_text_box = customtkinter.CTkTextbox(self.log_frame, height=115, width=300)
         self.stats_text_box.grid(row=1, column=0, padx=20)
         self.stats_text_box.insert("1.0", "WIP")  # Set default text
         self.stats_text_box.configure(state="disabled")
@@ -450,7 +450,7 @@ class App(customtkinter.CTk):
         log_label.grid(row=0, column=1, padx=20, pady=(0, 10), sticky="w")
 
         # Add a text box for displaying log entries
-        self.log_text_box = customtkinter.CTkTextbox(self.log_frame, height=100, width=300)
+        self.log_text_box = customtkinter.CTkTextbox(self.log_frame, height=115, width=300)
         self.log_text_box.grid(row=1, column=1, padx=20)
         self.log_text_box.insert("1.0", "Log entries here")  # Set default text
         
