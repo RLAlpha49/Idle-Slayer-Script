@@ -1,4 +1,4 @@
-import GUI  # Import the GUI module
+import GUI
 import keyboard
 import time
 from configparser import ConfigParser
@@ -11,6 +11,7 @@ import pygetwindow as gw
 from Log import write_log_entry, increment_stat
 from BonusStage import bonus_stage
 from PixelSearch import PixelSearchWindow
+from Wrapper import timer
 
 running_threads = True
 event = threading.Event()
@@ -18,12 +19,14 @@ event = threading.Event()
 base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 logs_dir = os.path.join(base_dir, "AutoSlayerLogs")
 
+@timer
 def load_settings():
     settings = ConfigParser()
     settings_file_path = os.path.join(logs_dir, "settings.txt")
     settings.read(settings_file_path)
     return settings
 
+@timer
 def update_settings(setting):
     settings = load_settings()
     state = settings.getboolean("Settings", str(setting))
@@ -32,7 +35,8 @@ def update_settings(setting):
     settings.set("Settings", str(setting), str(state))
     with open(settings_file_path, "w") as configfile:
         settings.write(configfile)
-    
+
+@timer
 def get_idle_slayer_window():
     while True:
         # Find the Idle Slayer window by its title
@@ -40,12 +44,6 @@ def get_idle_slayer_window():
         if idle_slayer_windows:
             return idle_slayer_windows[0]
         time.sleep(1)  # Wait for 1 second before checking again
-
-def color_match(actual_color, target_color, shade):
-    for i in range(3):
-        if abs(actual_color[i] - target_color[i]) > shade:
-            return False
-    return True
     
 def arrow_keys():
     # Check if the focused window's title matches the target window title
@@ -63,7 +61,7 @@ def arrow_keys():
                 keyboard.press_and_release('d')
                 time.sleep(jumpratevalue / 1000)  # Convert to seconds
             else:
-                time.sleep(1) # Sleep to avoid busy-waiting 
+                time.sleep(2) # Sleep to avoid busy-waiting 
                 # P.S. Without this, program was using half my cpu, I would reccomend not removing this
         else:
             time.sleep(1) # Sleep to avoid busy-waiting 
@@ -143,7 +141,7 @@ def general_gameplay():
                         # Check if the Idle Slayer window is focused
                         active_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
                         if active_window_title == "Idle Slayer":
-                            buy_equipment()
+                            buying()
                             if settings.getboolean("Settings", "paused"):
                                 update_settings("paused")
                 
@@ -167,6 +165,7 @@ def general_gameplay():
             time.sleep(1)
 
 # Collect & Send Minions
+@timer
 def collect_minion():
     window = get_idle_slayer_window()
     # Click ascension button
@@ -214,6 +213,7 @@ def collect_minion():
     pyautogui.click(window.left + 570, window.top + 694)      
 
 # Claim quests
+@timer
 def claim_quests():
     window = get_idle_slayer_window()
     write_log_entry("Claiming Quests")
@@ -267,7 +267,8 @@ def claim_quests():
     pyautogui.click(window.left + 1244, window.top + 712)
     update_settings("paused")
     
-# Auto Rage 
+# Auto Rage
+@timer
 def Rage_When_Horde():
     settings = load_settings()
     SoulBonusActive = Check_Soul_Bonus()
@@ -289,7 +290,8 @@ def Rage_When_Horde():
         write_log_entry(f"Rage MegaHorde")
         increment_stat("Rage with only MegaHorde")
         Rage()
-        
+
+@timer
 def Rage():
     settings = load_settings()
     if settings.getboolean("Settings", "craftdimensionalstaffstate"):
@@ -301,13 +303,16 @@ def Rage():
         update_settings("craftbidimensionalstaffstate")
         write_log_entry("Crafted BiDimensional Staff")
     keyboard.press_and_release('e')
+    
 # Checks Soul Bonus
+@timer
 def Check_Soul_Bonus():
     print("Checking for Soul Bonus")
     if PixelSearchWindow((168, 109, 10), 625, 629, 143, 214, shade=0) is not None:
         write_log_entry("MegaHorde Rage with SoulBonus")
         return True 
 
+@timer
 def Craft_Temporary_Item(color):
     update_settings("paused")
     window = get_idle_slayer_window()
@@ -347,6 +352,7 @@ def Craft_Temporary_Item(color):
     update_settings("paused")
     
 # Cycle Portals
+@timer
 def CyclePortals():
     settings = load_settings()
     if settings.getboolean("Settings", "cycleportalsstate") and not settings.getboolean("Settings", "chesthuntactivestate"):  
@@ -418,7 +424,8 @@ def CyclePortals():
             write_log_entry(f"Portal Activated")
             time.sleep(10)
       
-# Chest Hunt Minigame      
+# Chest Hunt Minigame   
+@timer   
 def chest_hunt():
     settings = load_settings()
     update_settings("chesthuntactivestate")
@@ -533,6 +540,10 @@ def chest_hunt():
     
     update_settings("chesthuntactivestate")
     
+@timer
+def buying():
+    buy_equipment()
+    
 # Auto Buy Equipment
 def buy_equipment():   
     settings = load_settings()
@@ -635,8 +646,7 @@ def buy_upgrade():
         update_settings("paused")
 
 def stop_threads():
-    #os._exit(0) # Used to close program when coding. Compiled script does not need this
-    event.set()  # Set the event to stop the threads 
+    os._exit(0)
 
 def main():
     app = GUI.App()  # Create an instance of the App class

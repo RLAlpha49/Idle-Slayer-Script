@@ -1,6 +1,8 @@
 import pygetwindow as gw
 from PIL import ImageGrab
+from Wrapper import timer
 
+@timer
 def PixelSearchWindow(color, left, right, top, bottom, shade=None):
     idle_slayer_windows = gw.getWindowsWithTitle("Idle Slayer")
     window = idle_slayer_windows[0]

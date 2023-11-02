@@ -10,7 +10,9 @@ from configparser import ConfigParser
 from PIL import Image
 from CTkToolTip import *
 from Log import write_log_entry
+from Wrapper import timer
 import AutoSlayer
+
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -51,7 +53,9 @@ if not os.path.exists(settings_file_path):
     write_log_entry(f"Script Directory: {base_dir}")
     write_log_entry(f"Settings Path: {settings_file_path}")
 
+
 class MyTabView(customtkinter.CTkTabview):
+    @timer
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
@@ -70,7 +74,7 @@ class MyTabView(customtkinter.CTkTabview):
         #self.set("General")
     
     
-
+    @timer
     def create_tab_content(self, tab_name):
         self.settings = configparser.ConfigParser()
         self.settings.read(settings_file_path)
@@ -125,7 +129,8 @@ class MyTabView(customtkinter.CTkTabview):
                 checkbox_column.append(checkbox)
                 
             self.checkboxes.append(checkbox_column)  # Add the checkbox column to the checkboxes list
-        
+    
+    @timer
     def create_tab_2_content(self, tab_name):
         settings = self.load_settings()
         tab = self.tab(tab_name)
@@ -192,8 +197,9 @@ class MyTabView(customtkinter.CTkTabview):
         self.belt_checkbox.grid(row=3, column=3, padx=40, sticky="w")
         self.belt_checkbox_var.set(settings.getboolean("Settings", "quicktoolbeltstate", fallback=False))
         CTkToolTip(self.belt_checkbox, message="Will craft items using the quick tool belt\nWill use original crafting tab if the items are not found in belt")
-        
-    def update_combobox_value(self, event):
+    
+    @timer
+    def update_combobox_value(self, *args):
         settings = self.load_settings()
 
         # Map combobox options to corresponding ragestate values
@@ -212,6 +218,7 @@ class MyTabView(customtkinter.CTkTabview):
         # Save the changes to the configuration file
         self.save_settings(settings)
     
+    @timer
     def update_auto_buy_value(self):
         new_auto_buy_value = self.general_text_box2.get("1.0", "end-1c")
 
@@ -225,7 +232,8 @@ class MyTabView(customtkinter.CTkTabview):
             write_log_entry(f"Auto Buy Timer updated to: {new_auto_buy_value}")
             
         self.save_settings(self.settings)
-            
+    
+    @timer
     def show_slider_value(self, value):
         self.slider_tooltip = CTkToolTip(self.slider, message=str(int(value)))
         
@@ -235,6 +243,7 @@ class MyTabView(customtkinter.CTkTabview):
         with open(settings_file_path, "w") as configfile:
             settings.write(configfile)
     
+    @timer
     def update_settings(self):
         print("Update settings")
         settings = self.load_settings()
@@ -275,11 +284,12 @@ class MyTabView(customtkinter.CTkTabview):
         
         # Save the changes to the configuration file
         self.save_settings(settings)
-        
+    
+    @timer
     def save_settings(self, settings):
         with open(settings_file_path, "w") as configfile:
             settings.write(configfile)
-            
+    
     def load_settings(self):
         settings = ConfigParser()
         settings_file_path = os.path.join(logs_dir, "settings.txt")
@@ -290,6 +300,7 @@ class MyTabView(customtkinter.CTkTabview):
 
 
 class App(customtkinter.CTk):
+    @timer
     def __init__(self):
         super().__init__()
 
@@ -359,6 +370,7 @@ class App(customtkinter.CTk):
         
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
+    @timer
     def create_general_frame_with_tabs(self):
         self.general_frame = customtkinter.CTkFrame(self, fg_color="transparent")
         self.general_frame.grid(row=1, column=1, columnspan=3, padx=(0, 0), pady=(0, 0), sticky="nsew")
@@ -372,6 +384,7 @@ class App(customtkinter.CTk):
         settings.read(settings_file_path)
         return settings
     
+    @timer
     def toggle_pause(self):
         settings = self.load_settings()
         paused = settings.getboolean("Settings", "paused")
@@ -383,6 +396,7 @@ class App(customtkinter.CTk):
         with open(settings_file_path, "w") as configfile:
             settings.write(configfile)
     
+    @timer
     def create_home_frame(self):
         
         base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -415,7 +429,8 @@ class App(customtkinter.CTk):
 
     def open_link2(self):
         webbrowser.open("https://github.com/RLAlpha49")
-            
+    
+    @timer
     def show_text(self, button_text):
         if button_text == "Home":
             self.show_frame(self.home_frame)
@@ -427,13 +442,15 @@ class App(customtkinter.CTk):
             self.toggle_pause()
         elif button_text == "Exit":
             self.on_closing()  # Close the program
-            
+    
+    @timer
     def show_frame(self, frame_to_show):
         if self.current_frame is not None:
             self.current_frame.grid_forget()  # Hide the current frame
         frame_to_show.grid(row=1, column=1, columnspan=3, padx=(0, 0), pady=(0, 0), sticky="nsew")
         self.current_frame = frame_to_show
     
+    @timer
     def create_log_frame(self):
         # Add a label for statistics
         stats_label = customtkinter.CTkLabel(self.log_frame, text="Statistics", font=customtkinter.CTkFont(size=18, weight="bold"))
