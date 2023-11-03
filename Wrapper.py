@@ -18,10 +18,15 @@ def timer(func):
 
         output = f"{func.__name__:30} Function took: {(after - before):.15f} seconds. Called from {caller_file:14} line {caller_line}"
 
-        # Check if the current line has anything on it
-        current_line = sys.stdout.write("\r" + " " * 80)  # Clear the current line
-        sys.stdout.flush()
-        print("\r" + output)  # Print the output on the cleared line
+        try:
+            if sys.stdout:
+                # Check if sys.stdout is available before calling flush
+                current_line = sys.stdout.write("\r" + " " * 80)  # Clear the current line
+                sys.stdout.flush()
+                print("\r" + output)  # Print the output on the cleared line
+        except Exception as e:
+            # Handle any exceptions related to sys.stdout
+            print("An error occurred while printing timing information:", str(e))
 
         return result
 
