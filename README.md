@@ -12,6 +12,7 @@ Most of the functionality of this program comes from [Devil4ngle's Idle_Slayer_S
 8. For minion collection to work correctly the "Leadership Master" Ascension upgrade is needed. (setting to disable minion collection WIP) 
 
 # Functionality / Capabilities
+- Auto Ascension!!!! (Must have atleast 100k slayer points)
 - Automatically Jumps & Boost
 - Collect Silver Boxes
 - Cycle Portals
