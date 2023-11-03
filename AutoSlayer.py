@@ -8,6 +8,11 @@ import threading
 import win32gui
 import pyautogui
 import pygetwindow as gw
+import pytesseract
+import cv2
+import numpy as np
+import re
+from PIL import ImageGrab, Image
 from Log import write_log_entry, increment_stat
 from BonusStage import bonus_stage
 from PixelSearch import PixelSearchWindow
@@ -18,6 +23,95 @@ event = threading.Event()
 
 base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 logs_dir = os.path.join(base_dir, "AutoSlayerLogs")
+
+# Config's for Tesseract-OCR to extract text more accurately
+custom_config = r'--oem 3 --psm 10 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz. --user-patterns "^[1-9]{1,3}[A-Za-z]$"'
+custom_config2 = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%,:.'
+
+# Define a regular expression pattern for matching text with 1-3 numbers, 1 letter, and no leading 0's
+#pattern = r'[1-9]{1,3}[A-Za-z]'
+pattern = r'(?<![0-9])\d{1,3}[A-Za-z](?![0-9])'
+
+
+# Track the occurrences of matching text
+occurrences = {}
+
+slayer_points = None
+total_slayer_points = None
+
+# Initialize the timer and last_check_time
+timer_start_time = None
+last_check_time = None
+
+# Define the conversion table
+notation_table = {
+    'K': 10 ** 3,
+    'M': 10 ** 6,
+    'B': 10 ** 9,
+    'T': 10 ** 12,
+    'Qa': 10 ** 15,
+    'Qi': 10 ** 18,
+    'Sx': 10 ** 21,
+    'Sp': 10 ** 24,
+    'Oc': 10 ** 27,
+    'No': 10 ** 30,
+    'Dc': 10 ** 33,
+    'Ud': 10 ** 36,
+    'Dd': 10 ** 39,
+    'Td': 10 ** 42,
+    'Qt': 10 ** 45,
+    'Qd': 10 ** 48,
+    'Sd': 10 ** 51,
+    'St': 10 ** 54,
+    'Od': 10 ** 57,
+    'Nd': 10 ** 60,
+    'Vg': 10 ** 63,
+    'Uv': 10 ** 66,
+    'Dv': 10 ** 69,
+    'Tv': 10 ** 72,
+    'Qav': 10 ** 75,
+    'Qiv': 10 ** 78,
+    'Sxv': 10 ** 81,
+    'Spv': 10 ** 84,
+    'Ocv': 10 ** 87
+}
+
+
+@timer
+def get_image_text(left, top, right, bottom):
+    window = get_idle_slayer_window()
+    image = ImageGrab.grab(bbox=(window.left + left, window.top + top, window.left + right, window.top + bottom))
+    # Convert the PIL image to a NumPy array
+    image_np = np.array(image)
+    
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
+    
+    # Apply thresholding
+    _, thresholded_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Scaling down the image
+    scale_percent = 60  
+    width = int(thresholded_image.shape[1] * scale_percent / 100)
+    height = int(thresholded_image.shape[0] * scale_percent / 100)
+    scaled_image = cv2.resize(thresholded_image, (width, height), interpolation=cv2.INTER_AREA)
+    
+    # Convert the NumPy array back to a PIL image
+    image = Image.fromarray(scaled_image)
+    
+    if left == 1100:
+        text = pytesseract.image_to_string(image, config=custom_config, lang='eng')
+        screenshot_path = 'screenshot.png'
+        # Remove the period and 1-2 numbers following it
+        text = (re.sub(r'\.\d{1,2}', '', text)).upper()
+    else:
+        text = pytesseract.image_to_string(image, config=custom_config2, lang='eng')
+        screenshot_path = 'screenshot2.png'
+            
+    print(text)
+    #image.save(screenshot_path) # Saves the image to see what the function is screenshotting
+    
+    return text
 
 @timer
 def load_settings():
@@ -50,7 +144,7 @@ def arrow_keys():
     target_window_title = "Idle Slayer"
     while not event.is_set():  # Check the event status
         settings = load_settings()
-        if not settings.getboolean("Settings", "paused"):
+        if not settings.getboolean("Settings", "paused") and not settings.getboolean("Settings", "chesthuntactivestate"):
             # Updates jump rate from settings file
             jumpratevalue = int(settings.get("Settings", "jumpratevalue", fallback="150"))
             # Get the focused window's title
@@ -64,11 +158,13 @@ def arrow_keys():
                 time.sleep(2) # Sleep to avoid busy-waiting 
                 # P.S. Without this, program was using half my cpu, I would reccomend not removing this
         else:
-            time.sleep(1) # Sleep to avoid busy-waiting 
+            time.sleep(2) # Sleep to avoid busy-waiting 
             # P.S. Without this, program was using half my cpu, I would reccomend not removing this
                 
 def general_gameplay():
     settings = load_settings()
+    if settings.getboolean("Settings", "slayerpoints"):
+        update_settings("slayerpoints")
     if settings.getboolean("Settings", "autobuyupgradestate"):
         cooldown_activated = True
         print("Cooldown activated: True")
@@ -160,9 +256,150 @@ def general_gameplay():
                     pyautogui.leftClick()
                     write_log_entry(f"Silver Box Collected")
                 
+                # Get Total Slayer Points
+                if settings.get("Settings","autoascensionstate") and total_slayer_points is None:
+                    get_total_slayer_points()
+        
+                # Check Crurrent Slayer Points
+                auto_ascension()
+                
                 time.sleep(0.25) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
         else:
             time.sleep(1)
+
+
+
+@timer
+# Auto Ascension
+def auto_ascension():
+    global slayer_points, total_slayer_points, timer_start_time, last_check_time, occurrences
+    window = get_idle_slayer_window()
+    settings = load_settings()
+    if slayer_points:
+        if timer_start_time is None:
+            timer_start_time = time.time()
+            last_check_time = timer_start_time
+    
+    if settings.getboolean("Settings", "slayerpoints"):
+        # If it's been 5 minutes since the last check, reset slayer_points and the setting
+        if time.time() - last_check_time >= 5 * 60:
+            slayer_points = None
+            occurrences = {}
+            update_settings("slayerpoints")
+    
+    if not settings.getboolean("Settings", "slayerpoints"):
+        if pyautogui.pixelMatchesColor(window.left + 1100, window.top + 90, (61, 52, 165)):
+            possible_slayer_points = get_image_text(1100, 73, 1184, 99)
+            
+            # Use regular expressions to find matching text
+            matches = re.findall(pattern, possible_slayer_points)
+            
+            if occurrences.__len__() >= 10:
+                occurrences.clear()
+            
+            for match in matches:
+                # If the match is not in the occurrences dictionary, add it
+                if match not in occurrences:
+                    occurrences[match] = 1
+                else:
+                    occurrences[match] += 1
+                    
+                    # Check if the same text has been found 20 times
+                    if occurrences[match] == 15:
+                        slayer_points = match  # Save the text to slayer_points
+                        update_settings("slayerpoints")
+                        print(slayer_points)
+                        last_check_time = time.time()  # Update the last_check_time
+            
+            # Print the occurrences
+            for text, count in occurrences.items():
+                print(f"Found: {text} {count} times")
+    
+    if slayer_points is not None and total_slayer_points is not None:
+        # Convert the slayer_points to an int
+        # Extract the number and abbreviation
+        number = int(slayer_points[:-1])  # Remove the last character (M) and convert to a float
+        abbreviation = slayer_points[-1]
+
+        if abbreviation in notation_table:
+            # Convert the number based on the abbreviation
+            converted_value = number * notation_table[abbreviation]
+
+            print("Original Value:", number)
+            print("Converted Value:", converted_value)
+        else:
+            print("Unknown Abbreviation:", abbreviation)
+
+        if converted_value > (int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100))):
+            print(int((total_slayer_points * (settings.getint("Settings", "autoascensionslider") / 100))))
+            print("Auto Ascending...")
+            
+            # Click ascension button
+            pyautogui.click(window.left + 95, window.top + 90)
+            time.sleep(0.4)
+            
+            # Click ascension tab
+            pyautogui.click(window.left + 93, window.top + 680)
+            time.sleep(0.2)
+            
+            # Click ascend button
+            pyautogui.click(window.left + 185, window.top + 595)
+            time.sleep(0.5)
+            
+            # Click yes button
+            pyautogui.click(window.left + 550, window.top + 580)
+            time.sleep(3)
+            
+            get_total_slayer_points()
+        
+        
+        
+        
+def get_total_slayer_points():
+    global total_slayer_points
+    window = get_idle_slayer_window()
+    update_settings("paused")
+    # Close Shop window if open
+    pyautogui.click(window.left + 1244, window.top + 712)
+    time.sleep(0.15)
+    
+    # Open shop window
+    pyautogui.click(window.left + 1163, window.top + 655)
+    time.sleep(0.15)
+    
+    # Open stats window
+    pyautogui.click(window.left + 1150, window.top + 690)
+    time.sleep(0.15)
+    
+    # Scroll to top of scrollbar
+    pyautogui.click(window.left + 1254, window.top + 168, clicks=10, interval=0.005)
+    time.sleep(0.2)
+    
+    while True:
+        for i in range(5):
+            pyautogui.vscroll(-1)
+        
+        possible_total_slayer_points = get_image_text(840, 165, 1235, 645)
+        
+        # Search for "totalslayerpoints:"
+        if "totalslayerpoints:" in possible_total_slayer_points.lower():
+            # Split the text by newlines to extract individual lines
+            lines = possible_total_slayer_points.split('\n')
+            for line in lines:
+                # Check if the line contains "totalslayerpoints:"
+                if "totalslayerpoints:" in line.lower():
+                    # Extract the value after "totalslayerpoints:"
+                    total_slayer_points = line.split(":")[1].strip()
+                    update_settings("paused")
+                    
+                    # Close Shop window
+                    pyautogui.click(window.left + 1244, window.top + 712)
+                    time.sleep(0.15)
+                    
+                    total_slayer_points = int(''.join(i for i in total_slayer_points if i.isdigit()))
+                    print("Total Slayer Points:", total_slayer_points)
+                    
+                    return  total_slayer_points
 
 # Collect & Send Minions
 @timer
@@ -464,28 +701,28 @@ def chest_hunt():
     
     print(f"Saver x: {saver_x}, Saver y: {saver_y}")
     
-    if saver_y == 599 or saver_y == 694 or saver_y == 789 or saver_y == 489 or saver_y == 584:
+    if saver_y == 599 or saver_y == 694 or saver_y == 789 or saver_y == 489 or saver_y == 584 or saver_y == 469:
         adjusted_saver_y = saver_y + 43
     elif saver_y == 584:
         adjusted_saver_y = saver_y + 66
     else:
         adjusted_saver_y = saver_y - 27
     
-    print(f"Saver Chest: {saver_x + 33}, {adjusted_saver_y}")
+    print(f"Saver Chest: {saver_x + 32}, {adjusted_saver_y}")
     
     for y in range(3):
         for x in range(10):
             #adjusted_saver_y = saver_y + 43 if saver_y != 850 or saver_y != 950 or saver_y != 859 else saver_y - 27
             # After opening 2 chests, open saver
             if count == 2 and saver_x > 0:
-                pyautogui.click(saver_x + 33, adjusted_saver_y)
+                pyautogui.click(saver_x + 32, adjusted_saver_y)
                 if settings.getboolean("Settings", "nolockpicking100state"):
                     time.sleep(1.5)
                 else:
                     time.sleep(0.55)
             
             # Skip saver no matter what
-            if (pixel_y - 23) == adjusted_saver_y and (pixel_x + 33) == (saver_x + 33):
+            if (pixel_y - 23) == adjusted_saver_y and (pixel_x + 33) == (saver_x + 32):
                 if count < 2:  # Go to the next chest if saver is the first two chests
                     print("count less than 2: Skipping saver")
                     pixel_x += 95
@@ -674,3 +911,8 @@ if __name__ == "__main__":
     
     general_gameplay_thread = threading.Thread(target=general_gameplay)
     general_gameplay_thread.start()
+    
+    # Wait for all threads to complete before exiting the program
+    main_thread.join()
+    arrow_keys_thread.join()
+    general_gameplay_thread.join()

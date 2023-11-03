@@ -35,7 +35,8 @@ default_settings = {
     "craftsoulbonusstate": "False", "craftragepillstate": "False", "craftdimensionalstaffstate": "False", 
     "craftbidimensionalstaffstate": "False", "quicktoolbeststate": "False",
     "disableragehordestate": "False", "nolockpicking100state": "True", 
-    "chesthuntactivestate": "False",   "ragesoulbonusstate": "False", 
+    "chesthuntactivestate": "False", "autoascensionstate": "False", "ragesoulbonusstate": "False", 
+    "slayerpoints": "False"
 }
 
 # Check if the log file exists, and create it if not
@@ -176,7 +177,7 @@ class MyTabView(customtkinter.CTkTabview):
         checkbox3 = customtkinter.CTkCheckBox(master=tab, text="Auto Ascension", variable=self.checkbox3_var, command=self.update_settings, font=customtkinter.CTkFont(size=13), checkbox_height=20, checkbox_width=20, height=20)
         checkbox3.grid(row=2, column=1, padx=20, pady=(0, 5), sticky="w")
         self.checkbox3_var.set(settings.getboolean("Settings", "autoascensionstate", fallback=False))
-        CTkToolTip(checkbox3, message="Activate/Deactivate Auto Ascension")
+        CTkToolTip(checkbox3, message="Activate/Deactivate Auto Ascension\nWill only work when you have at least ONE Hundred Thousand Slayer Points\nKeeping this on should not break anything")
         
         self.label2 = customtkinter.CTkLabel(master=tab, text="Miscellaneous", font=customtkinter.CTkFont(size=16, weight="bold"))
         self.label2.grid(row=0, column=3, padx=40, pady=(0, 0), sticky="w")
