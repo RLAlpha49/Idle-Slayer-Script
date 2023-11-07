@@ -1,37 +1,38 @@
 import GUI
 import keyboard
 import time
-from configparser import ConfigParser
 import os
 import sys
 import threading
 import win32gui
 import pyautogui
-import pygetwindow as gw
 import pytesseract
 import cv2
 import numpy as np
 import re
+import pygetwindow as gw
 from PIL import ImageGrab, Image
 from Log import write_log_entry, increment_stat
 from BonusStage import bonus_stage
 from PixelSearch import PixelSearchWindow
 from Wrapper import timer
+from SettingsAndWindow import load_settings, update_settings, get_idle_slayer_window
+
+version = "v1.7"
 
 running_threads = True
 event = threading.Event()
 
 base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 logs_dir = os.path.join(base_dir, "AutoSlayerLogs")
+settings_file_path = os.path.join(logs_dir, "settings.txt")
 
 # Config's for Tesseract-OCR to extract text more accurately
 custom_config = r'--oem 3 --psm 10 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz. --user-patterns "^[1-9]{1,3}[A-Za-z]$"'
 custom_config2 = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%,:.'
 
 # Define a regular expression pattern for matching text with 1-3 numbers, 1 letter, and no leading 0's
-#pattern = r'[1-9]{1,3}[A-Za-z]'
 pattern = r'(?<![0-9])\d{1,3}[A-Za-z](?![0-9])'
-
 
 # Track the occurrences of matching text
 occurrences = {}
@@ -91,7 +92,7 @@ def get_image_text(left, top, right, bottom):
     _, thresholded_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
     # Scaling down the image
-    scale_percent = 60  
+    scale_percent = 80
     width = int(thresholded_image.shape[1] * scale_percent / 100)
     height = int(thresholded_image.shape[0] * scale_percent / 100)
     scaled_image = cv2.resize(thresholded_image, (width, height), interpolation=cv2.INTER_AREA)
@@ -112,32 +113,6 @@ def get_image_text(left, top, right, bottom):
     #image.save(screenshot_path) # Saves the image to see what the function is screenshotting
     
     return text
-
-@timer
-def load_settings():
-    settings = ConfigParser()
-    settings_file_path = os.path.join(logs_dir, "settings.txt")
-    settings.read(settings_file_path)
-    return settings
-
-@timer
-def update_settings(setting):
-    settings = load_settings()
-    state = settings.getboolean("Settings", str(setting))
-    state = not state
-    
-    settings.set("Settings", str(setting), str(state))
-    with open(settings_file_path, "w") as configfile:
-        settings.write(configfile)
-
-@timer
-def get_idle_slayer_window():
-    while True:
-        # Find the Idle Slayer window by its title
-        idle_slayer_windows = gw.getWindowsWithTitle("Idle Slayer")
-        if idle_slayer_windows:
-            return idle_slayer_windows[0]
-        time.sleep(1)  # Wait for 1 second before checking again
     
 def arrow_keys():
     # Check if the focused window's title matches the target window title
@@ -160,7 +135,7 @@ def arrow_keys():
         else:
             time.sleep(2) # Sleep to avoid busy-waiting 
             # P.S. Without this, program was using half my cpu, I would reccomend not removing this
-                
+
 def general_gameplay():
     settings = load_settings()
     if settings.getboolean("Settings", "slayerpoints"):
@@ -267,14 +242,14 @@ def general_gameplay():
                 if settings.get("Settings","autoascensionstate") and total_slayer_points is None:
                     get_total_slayer_points()
         
-                # Check Crurrent Slayer Points
+                # Check Auto Ascension
                 auto_ascension()
                 
-                time.sleep(0.25) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
+                time.sleep(0.20) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
+            else:
+                time.sleep(0.5)
         else:
             time.sleep(1)
-
-
 
 @timer
 # Auto Ascension
@@ -312,20 +287,20 @@ def auto_ascension():
                     occurrences[match] += 1
                     
                     # Check if the same text has been found 20 times
-                    if occurrences[match] == 15:
+                    if occurrences[match] == 20:
                         slayer_points = match  # Save the text to slayer_points
                         update_settings("slayerpoints")
                         print(slayer_points)
                         last_check_time = time.time()  # Update the last_check_time
+                        write_log_entry(f"Slayer Points: {slayer_points}")
             
             # Print the occurrences
             for text, count in occurrences.items():
                 print(f"Found: {text} {count} times")
     
     if slayer_points is not None and total_slayer_points is not None:
-        # Convert the slayer_points to an int
         # Extract the number and abbreviation
-        number = int(slayer_points[:-1])  # Remove the last character (M) and convert to a float
+        number = int(slayer_points[:-1])  # Remove the last character and convert to a int
         abbreviation = slayer_points[-1]
 
         if abbreviation in notation_table:
@@ -337,9 +312,12 @@ def auto_ascension():
         else:
             print("Unknown Abbreviation:", abbreviation)
 
+        print(f"Slayer Points Needed: {(int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100)))}")
         if converted_value > (int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100))):
             print(int((total_slayer_points * (settings.getint("Settings", "autoascensionslider") / 100))))
             print("Auto Ascending...")
+            write_log_entry(f"Auto Ascending")
+            increment_stat("Auto Ascensions")
             
             # Click ascension button
             pyautogui.click(window.left + 95, window.top + 90)
@@ -357,13 +335,20 @@ def auto_ascension():
             pyautogui.click(window.left + 550, window.top + 580)
             time.sleep(3)
             
+            slayer_points = None
+            last_check_time = None
+            timer_start_time = None
+            update_settings("slayerpoints")
+            
             get_total_slayer_points()
-        
-        
-        
-        
+            time.sleep(5)
+            buying()
+
+# Find and save total slayer points
+@timer
 def get_total_slayer_points():
     global total_slayer_points
+    found = False
     window = get_idle_slayer_window()
     update_settings("paused")
     # Close Shop window if open
@@ -393,20 +378,43 @@ def get_total_slayer_points():
             # Split the text by newlines to extract individual lines
             lines = possible_total_slayer_points.split('\n')
             for line in lines:
-                # Check if the line contains "totalslayerpoints:"
-                if "totalslayerpoints:" in line.lower():
-                    # Extract the value after "totalslayerpoints:"
-                    total_slayer_points = line.split(":")[1].strip()
+                if found is True:
                     update_settings("paused")
                     
                     # Close Shop window
                     pyautogui.click(window.left + 1244, window.top + 712)
                     time.sleep(0.15)
                     
-                    total_slayer_points = int(''.join(i for i in total_slayer_points if i.isdigit()))
+                    total_slayer_points = line.replace(",", "")
+                    if total_slayer_points.isdigit():
+                        total_slayer_points = int(total_slayer_points)
+                        print("Total Slayer Points:", total_slayer_points)
+                        return  total_slayer_points
+                    else:
+                        found = False
+                    write_log_entry(f"Total Slayer Points: {total_slayer_points}")
                     print("Total Slayer Points:", total_slayer_points)
                     
-                    return  total_slayer_points
+                    
+                else:
+                    # Check if the line contains "totalslayerpoints:"
+                    if "totalslayerpoints:" in line.lower():
+                        # Extract the value after "totalslayerpoints:"
+                        total_slayer_points = line.split(":")[1].strip()
+                        if total_slayer_points == "":
+                            found = True
+                        else:
+                            update_settings("paused")
+                            
+                            # Close Shop window
+                            pyautogui.click(window.left + 1244, window.top + 712)
+                            time.sleep(0.15)
+                            
+                            total_slayer_points = int(''.join(i for i in total_slayer_points if i.isdigit()))
+                            write_log_entry(f"Total Slayer Points: {total_slayer_points}")
+                            print("Total Slayer Points:", total_slayer_points)
+                            
+                            return  total_slayer_points
 
 # Collect & Send Minions
 @timer
@@ -447,7 +455,7 @@ def collect_minion():
     else:
         # Click Claim All
         pyautogui.click(window.left + 318, window.top + 182, clicks=5)
-        time.sleep(0.2)
+        time.sleep(0.4)
         # Click Send All
         pyautogui.click(window.left + 318, window.top + 182, clicks=5)
         time.sleep(0.2)
@@ -510,7 +518,7 @@ def claim_quests():
     # Close Shop
     pyautogui.click(window.left + 1244, window.top + 712)
     update_settings("paused")
-    
+
 # Auto Rage
 @timer
 def Rage_When_Horde():
@@ -594,7 +602,7 @@ def Craft_Temporary_Item(color):
     pyautogui.click(window.left + 440, window.top + 690)
     time.sleep(0.1)
     update_settings("paused")
-    
+
 # Cycle Portals
 @timer
 def CyclePortals():
@@ -668,7 +676,7 @@ def CyclePortals():
             write_log_entry(f"Portal Activated")
             increment_stat("Portals Cycled")
             time.sleep(10)
-      
+
 # Chest Hunt Minigame   
 @timer   
 def chest_hunt():
@@ -680,9 +688,9 @@ def chest_hunt():
     window = get_idle_slayer_window()
     
     if settings.getboolean("Settings", "nolockpicking100state"):
-        time.sleep(5)
+        time.sleep(6)
     else:
-        time.sleep(2.5)
+        time.sleep(3)
     
     saver_x = 0
     saver_y = 0
@@ -709,28 +717,28 @@ def chest_hunt():
     
     print(f"Saver x: {saver_x}, Saver y: {saver_y}")
     
-    if saver_y == 599 or saver_y == 694 or saver_y == 789 or saver_y == 489 or saver_y == 584 or saver_y == 469:
-        adjusted_saver_y = saver_y + 43
-    elif saver_y == 584:
-        adjusted_saver_y = saver_y + 66
-    else:
+    if saver_y == 826:
         adjusted_saver_y = saver_y - 27
+    else:
+        adjusted_saver_y = saver_y + 43
     
-    print(f"Saver Chest: {saver_x + 32}, {adjusted_saver_y}")
+    adjusted_saver_x = saver_x + 32
+    
+    print(f"Saver Chest: {adjusted_saver_x}, {adjusted_saver_y}")
     
     for y in range(3):
         for x in range(10):
             #adjusted_saver_y = saver_y + 43 if saver_y != 850 or saver_y != 950 or saver_y != 859 else saver_y - 27
             # After opening 2 chests, open saver
             if count == 2 and saver_x > 0:
-                pyautogui.click(saver_x + 32, adjusted_saver_y)
+                pyautogui.click(adjusted_saver_x, adjusted_saver_y)
                 if settings.getboolean("Settings", "nolockpicking100state"):
                     time.sleep(1.5)
                 else:
                     time.sleep(0.55)
             
             # Skip saver no matter what
-            if (pixel_y - 23) == adjusted_saver_y and (pixel_x + 33) == (saver_x + 32):
+            if (pixel_y - 23) == adjusted_saver_y and (pixel_x + 33) == (adjusted_saver_x):
                 if count < 2:  # Go to the next chest if saver is the first two chests
                     print("count less than 2: Skipping saver")
                     pixel_x += 95
@@ -764,7 +772,7 @@ def chest_hunt():
                 print("mimic")
             elif PixelSearchWindow((106,190,48), 580, 680, 650, 720, shade=1) is not None:
                 print("2x")
-                sleep_time = 2.5 if settings.getboolean("Settings", "nolockpicking100state") else 1.25
+                pyautogui.click()
             
             time.sleep(sleep_time)
             pixel_x += 95
@@ -776,7 +784,7 @@ def chest_hunt():
         
         pixel_y += 95
         pixel_x = window.left + 185
-    
+
     # Look for close button until found
     while PixelSearchWindow((179, 0, 0), 300, 500, 650, 700, shade=1) or PixelSearchWindow((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
         print("exit chesthunt")
@@ -784,11 +792,16 @@ def chest_hunt():
         break
     
     update_settings("chesthuntactivestate")
-    
+
 @timer
 def buying():
     buy_equipment()
+    write_log_entry(f"Buy Equipment/Upgrades")
     
+    settings = load_settings()
+    if settings.getboolean("Settings", "paused"):
+        update_settings("paused")
+
 # Auto Buy Equipment
 def buy_equipment():   
     settings = load_settings()
@@ -853,7 +866,7 @@ def buy_equipment():
         update_settings("paused")
             
         buy_upgrade()
- 
+
 # Auto Buy Upgrades       
 def buy_upgrade():
     window = get_idle_slayer_window()
@@ -900,7 +913,6 @@ def main():
 
 if __name__ == "__main__":
     settings = load_settings()
-    settings_file_path = os.path.join(logs_dir, "settings.txt")
 
     if settings.getboolean("Settings", "chesthuntactivestate"):
         update_settings("chesthuntactivestate")
@@ -911,7 +923,24 @@ if __name__ == "__main__":
     main_thread = threading.Thread(target=main)
     main_thread.start()
     
-    time.sleep(2)  # Allow some time for the GUI to start
+    #time.sleep(2)  # Allow some time for the GUI to start
+    
+    window = get_idle_slayer_window()
+    while True:
+        try:
+            window_to_position = gw.getWindowsWithTitle(f"AutoSlayer {version}")[0]
+            if window_to_position is not None and window_to_position.title == f"AutoSlayer {version}": # window_to_position.title is so that it does not consider the AutoSlayer.py file open in an editor as the window it is looking for
+                print("Not None")
+                window_to_position.moveTo(window.left + 175, window.top + 751)
+                break
+            else:
+                print("None")
+                time.sleep(0.01)
+        except IndexError:
+            # Handle the case when the window is not found, retry after a delay
+            print("Window not found. Retrying...")
+            time.sleep(0.01)
+    
     
     arrow_keys_thread = threading.Thread(target=arrow_keys)
     arrow_keys_thread.daemon = True

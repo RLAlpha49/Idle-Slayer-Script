@@ -2,17 +2,19 @@ import configparser
 import os
 import sys
 import customtkinter
-from tkinter import messagebox
 import webbrowser
 import time
 import threading
+from tkinter import messagebox
 from configparser import ConfigParser
 from PIL import Image
 from CTkToolTip import *
 from Log import write_log_entry
 from Wrapper import timer
+from SettingsAndWindow import get_idle_slayer_window
 import AutoSlayer
 
+version = "v1.7"
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -51,8 +53,7 @@ if not os.path.exists(log_file_path):
 # Check if the settings file exists, and create it if not
 if not os.path.exists(settings_file_path):
     with open(settings_file_path, "w") as configfile:
-        configfile.write("[Settings]\n" +
-                         "\n".join([f"{setting} = {default}" for setting, default in default_settings.items()]))
+        configfile.write("[Settings]\n" +"\n".join([f"{setting} = {default}" for setting, default in default_settings.items()]))
     write_log_entry(f"Settings File: Created")
     write_log_entry(f"Settings Path: {settings_file_path}")
     
@@ -314,9 +315,6 @@ class MyTabView(customtkinter.CTkTabview):
         settings.read(settings_file_path)
         return settings
 
-    
-
-
 class App(customtkinter.CTk):
     @timer
     def __init__(self):
@@ -326,8 +324,9 @@ class App(customtkinter.CTk):
         self.settings.read(settings_file_path)
         
         # configure window
-        self.title("AutoSlayer")
-        self.geometry(f"{930}x{160}") 
+        self.title(f"AutoSlayer {version}")
+        self.geometry(f"{930}x{160}")
+        
 
         # configure grid layout (4x4)
         self.grid_columnconfigure(1, weight=1)
@@ -431,16 +430,19 @@ class App(customtkinter.CTk):
 
         # Add a title label
         title_label = customtkinter.CTkLabel(self.home_frame, text="Welcome to AutoSlayer!", font=customtkinter.CTkFont(size=24, weight="bold"))
-        title_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 10))
+        title_label.grid(row=0, column=0, columnspan=2, padx=20, pady=(10, 0))
+        
+        version_label = customtkinter.CTkLabel(self.home_frame, text=f"{version}", font=customtkinter.CTkFont(size=18, weight="bold"))
+        version_label.grid(row=1, column=0, columnspan=2, padx=20, pady=(0, 0))
 
         # Add picture buttons with links
         image_label1 = customtkinter.CTkLabel(self.home_frame, image=image1_tk, cursor="hand2", text="")
         image_label1.bind("<Button-1>", lambda e: self.open_link1())
-        image_label1.grid(row=1, column=0, padx=20, pady=0)
+        image_label1.grid(row=2, column=0, padx=20, pady=0)
 
         image_label2 = customtkinter.CTkLabel(self.home_frame, image=image2_tk, cursor="hand2", text="")
         image_label2.bind("<Button-1>", lambda e: self.open_link2())
-        image_label2.grid(row=1, column=1, padx=20, pady=0)
+        image_label2.grid(row=2, column=1, padx=20, pady=0)
 
     def open_link1(self):
         webbrowser.open("https://github.com/RLAlpha49")
@@ -535,10 +537,6 @@ class App(customtkinter.CTk):
         self.after_cancel(self.update_log_text_box)
         AutoSlayer.stop_threads() # Stop
         self.destroy()
-
-        
-        
-
 
 if __name__ == "__main__":
     app = App()

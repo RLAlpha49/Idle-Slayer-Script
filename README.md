@@ -21,6 +21,13 @@ Most of the functionality of this program comes from [Devil4ngle's Idle_Slayer_S
 - Auto Rage
 - Bonus Stage's (WIP)
   - Skip Bonus Stage's (Completed)
+  - Bonus Stage 1 (WIP)
+    - Bonus Stage 1 Spirit Boost (WIP)
+  - Bonus Stage 2 (Partial)
+    - Section 4 (WIP)
+    - Bonus Stage 2 Spirit Boost (WIP)
+  - Bonus Stage 3 (WIP)
+    - Bonus Stage 3 Spirit Boost (WIP)
 
 TIP: Hover over things in the GUI for tooltips on their functionality
 

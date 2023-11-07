@@ -35,3 +35,7 @@ dist/AutoSlayer.exe
 dist/AutoSlayerLogs/log.txt
 dist/AutoSlayerLogs/settings.txt
 __pycache__/Wrapper.cpython-312.pyc
+screenshot.png
+screenshot2.png
+__pycache__/SettingsAndWindow.cpython-312.pyc
+BonusStageTimings.py

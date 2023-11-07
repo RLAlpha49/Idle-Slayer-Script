@@ -16,12 +16,11 @@ def timer(func):
         caller_line = frame_info.f_back.f_lineno
         frame_info = None  # Release the frame reference
 
-        output = f"{func.__name__:30} Function took: {(after - before):.15f} seconds. Called from {caller_file:14} line {caller_line}"
+        output = f"{func.__name__:30} Function took: {(after - before):.15f} seconds. Called from {caller_file:21} line {caller_line}"
 
         try:
             if sys.stdout:
                 # Check if sys.stdout is available before calling flush
-                current_line = sys.stdout.write("\r" + " " * 80)  # Clear the current line
                 sys.stdout.flush()
                 print("\r" + output)  # Print the output on the cleared line
         except Exception as e:
