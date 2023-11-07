@@ -77,7 +77,6 @@ notation_table = {
     'Ocv': 10 ** 87
 }
 
-
 @timer
 def get_image_text(left, top, right, bottom):
     window = get_idle_slayer_window()
@@ -243,7 +242,8 @@ def general_gameplay():
                     get_total_slayer_points()
         
                 # Check Auto Ascension
-                auto_ascension()
+                if settings.get("Settings","autoascensionstate"):
+                    auto_ascension()
                 
                 time.sleep(0.20) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
             else:

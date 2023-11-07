@@ -17,6 +17,7 @@ def write_log_entry(log_entry):
         current_time = time.strftime("%Y-%m-%d %H:%M:%S")
         formatted_log_entry = f"{current_time} : {log_entry}\n"
         log_file.write(formatted_log_entry)
+        time.sleep(0.1)
         remove_extra_lines()
 
 @timer
@@ -24,6 +25,7 @@ def increment_stat(stat_name):
     # Read the existing stats from the file
     stats = {}
     with open(stats_file_path, "r") as configfile:
+        time.sleep(0.1)
         for line in configfile:
             line = line.strip()
             if line:
