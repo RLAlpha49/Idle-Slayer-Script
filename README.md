@@ -24,6 +24,7 @@ Most of the functionality of this program comes from [Devil4ngle's Idle_Slayer_S
   - Bonus Stage 1 (WIP)
     - Bonus Stage 1 Spirit Boost (WIP)
   - Bonus Stage 2 (Partial)
+    - Section 1-3 (Complete)
     - Section 4 (WIP)
     - Bonus Stage 2 Spirit Boost (WIP)
   - Bonus Stage 3 (WIP)
