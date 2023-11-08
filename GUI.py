@@ -11,12 +11,11 @@ from PIL import Image
 from CTkToolTip import *
 from Log import write_log_entry
 from Wrapper import timer
-from SettingsAndWindow import get_idle_slayer_window
 import AutoSlayer
 
 version = "v1.7"
 
-customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
+customtkinter.set_appearance_mode("Dark")  # Modes: "Dark" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 # Get the base directory of the application (works when running from executable)

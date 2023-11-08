@@ -1,10 +1,11 @@
-import pygetwindow as gw
+#import pygetwindow as gw
 from PIL import ImageGrab
 from Wrapper import timer
+from SettingsAndWindow import get_active_window_title
 
 @timer
 def PixelSearchWindow(color, left, right, top, bottom, shade=None):
-    idle_slayer_windows = gw.getWindowsWithTitle("Idle Slayer")
+    idle_slayer_windows = get_active_window_title() #gw.getWindowsWithTitle("Idle Slayer")
     window = idle_slayer_windows[0]
     screenshot = ImageGrab.grab(bbox=(window.left, window.top, window.left + 1280, window.top + 720))
     

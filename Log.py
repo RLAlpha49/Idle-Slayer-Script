@@ -55,28 +55,31 @@ def remove_extra_lines():
     with open(log_file_path, 'r') as file:
         lines = file.readlines()
 
-    # Initialize variables for the first line
-    prev_line = lines[0]
-    prev_date = parse_date(prev_line)
+    try:
+        # Initialize variables for the first line
+        prev_line = lines[0]
+        prev_date = parse_date(prev_line)
 
-    # Create a new list to store filtered lines
-    filtered_lines = [prev_line]
+        # Create a new list to store filtered lines
+        filtered_lines = [prev_line]
 
-    # Define a threshold (1 minute) for ignoring repeated entries
-    threshold = timedelta(minutes=1)
+        # Define a threshold (1 minute) for ignoring repeated entries
+        threshold = timedelta(minutes=1)
 
-    # Iterate over the remaining lines
-    for line in lines[1:]:
-        current_date = parse_date(line)
-        time_difference = current_date - prev_date
+        # Iterate over the remaining lines
+        for line in lines[1:]:
+            current_date = parse_date(line)
+            time_difference = current_date - prev_date
 
-        if time_difference >= threshold:
-            # Append the line to the filtered list if the time difference is more than 1 minute
-            filtered_lines.append(line)
+            if time_difference >= threshold:
+                # Append the line to the filtered list if the time difference is more than 1 minute
+                filtered_lines.append(line)
 
-        prev_line = line
-        prev_date = current_date
+            prev_line = line
+            prev_date = current_date
 
-    # Write the filtered lines back to the file
-    with open(log_file_path, 'w') as file:
-        file.writelines(filtered_lines)
+        # Write the filtered lines back to the file
+        with open(log_file_path, 'w') as file:
+            file.writelines(filtered_lines)
+    except IndexError:
+        print("Index Error: File has no text")

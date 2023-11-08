@@ -40,3 +40,10 @@ screenshot2.png
 __pycache__/SettingsAndWindow.cpython-312.pyc
 BonusStageTimings.py
 dist/AutoSlayerLogs/stats.txt
+__pycache__/AutoSlayer.cpython-310.pyc
+__pycache__/BonusStage.cpython-310.pyc
+__pycache__/GUI.cpython-310.pyc
+__pycache__/Log.cpython-310.pyc
+__pycache__/PixelSearch.cpython-310.pyc
+__pycache__/SettingsAndWindow.cpython-310.pyc
+__pycache__/Wrapper.cpython-310.pyc

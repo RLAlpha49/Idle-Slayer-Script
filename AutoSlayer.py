@@ -4,19 +4,18 @@ import time
 import os
 import sys
 import threading
-import win32gui
 import pyautogui
 import pytesseract
 import cv2
 import numpy as np
 import re
-import pygetwindow as gw
+#import pygetwindow as gw
 from PIL import ImageGrab, Image
 from Log import write_log_entry, increment_stat
 from BonusStage import bonus_stage
 from PixelSearch import PixelSearchWindow
 from Wrapper import timer
-from SettingsAndWindow import load_settings, update_settings, get_idle_slayer_window
+from SettingsAndWindow import load_settings, update_settings, get_idle_slayer_window, get_focused_window, get_active_window_title, move_window_by_name
 
 version = "v1.7"
 
@@ -122,7 +121,7 @@ def arrow_keys():
             # Updates jump rate from settings file
             jumpratevalue = int(settings.get("Settings", "jumpratevalue", fallback="150"))
             # Get the focused window's title
-            focused_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+            focused_window_title = get_focused_window()
             if focused_window_title == target_window_title:  
                 # Plan to change this to arrow keys to somewhat allow the script to work even when the window is not focused
                 keyboard.press_and_release('w')
@@ -150,7 +149,7 @@ def general_gameplay():
         
     target_window_title = "Idle Slayer"
     while not event.is_set():  # Check the event status
-        focused_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+        focused_window_title = get_focused_window()
         if focused_window_title == target_window_title:
             time.sleep(0.1)
             settings = load_settings()
@@ -213,7 +212,7 @@ def general_gameplay():
                         auto_upgrades_cooldown = settings.getint("Settings", "autobuyvalue") # Keeps Auto Buy Upgrade time the same as value given by user if setting is not changed
                         timer = time.time()
                         # Check if the Idle Slayer window is focused
-                        active_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
+                        active_window_title = get_focused_window()
                         if active_window_title == "Idle Slayer":
                             buying()
                             if settings.getboolean("Settings", "paused"):
@@ -312,7 +311,7 @@ def auto_ascension():
         else:
             print("Unknown Abbreviation:", abbreviation)
 
-        print(f"Slayer Points Needed: {(int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100)))}")
+        print(f'Slayer Points Needed: {(int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100)))}')
         if converted_value > (int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100))):
             print(int((total_slayer_points * (settings.getint("Settings", "autoascensionslider") / 100))))
             print("Auto Ascending...")
@@ -928,10 +927,11 @@ if __name__ == "__main__":
     window = get_idle_slayer_window()
     while True:
         try:
-            window_to_position = gw.getWindowsWithTitle(f"AutoSlayer {version}")[0]
-            if window_to_position is not None and window_to_position.title == f"AutoSlayer {version}": # window_to_position.title is so that it does not consider the AutoSlayer.py file open in an editor as the window it is looking for
+            window_to_position = get_active_window_title() #gw.getWindowsWithTitle(f"AutoSlayer {version}")[0]
+            if window_to_position is not None and window_to_position == f"AutoSlayer {version}": # window_to_position.title is so that it does not consider the AutoSlayer.py file open in an editor as the window it is looking for
                 print("Not None")
-                window_to_position.moveTo(window.left + 175, window.top + 751)
+                #window_to_position.moveTo(window.left + 175, window.top + 751)
+                move_window_by_name((f"AutoSlayer {version}"), window.left + 175, window.top + 751)
                 break
             else:
                 print("None")
