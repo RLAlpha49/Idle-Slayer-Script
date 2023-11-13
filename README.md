@@ -35,4 +35,4 @@ TIP: Hover over things in the GUI for tooltips on their functionality
 ---
 
 Contact me on discord for anything.
-Discord: alpha49
+[Discord - alpha49](https://discordid.netlify.app/?id=251479989378220044)
