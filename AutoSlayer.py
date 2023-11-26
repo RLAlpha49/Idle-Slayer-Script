@@ -18,7 +18,7 @@ from PixelSearch import PixelSearchWindow
 from Wrapper import timer
 from SettingsAndWindow import load_settings, update_settings, get_idle_slayer_window
 
-version = "v1.7"
+version = "v1.72"
 
 running_threads = True
 event = threading.Event()
@@ -39,6 +39,7 @@ occurrences = {}
 
 slayer_points = None
 total_slayer_points = None
+slayer_points_checked = False
 
 # Initialize the timer and last_check_time
 timer_start_time = None
@@ -77,40 +78,62 @@ notation_table = {
     'Ocv': 10 ** 87
 }
 
+# Define the scaling percentage for the image
+SCALE_PERCENT = 80
+
+# Define a dictionary to hold the configurations and paths for different 'left' values
+CONFIGS_AND_PATHS = {
+    1100: {'config': custom_config, 'path': 'screenshot.png'},
+    'default': {'config': custom_config2, 'path': 'screenshot2.png'}
+}
+
+def click_and_sleep(window, x, y, sleep_time=0, clicks=1, interval=0.01):
+    pyautogui.click(window.left + x, window.top + y, clicks=clicks, interval=interval)
+    time.sleep(sleep_time)
+
+# Function to get the configuration and path based on the 'left' value
+def get_config_and_path(left):
+    # Use the 'get' method of the dictionary to return the value for the given 'left', or the default value if 'left' is not in the dictionary
+    return CONFIGS_AND_PATHS.get(left, CONFIGS_AND_PATHS['default'])
+
+# Function to remove the period and 1-2 numbers following it from the text
+def remove_period_and_numbers(text):
+    return (re.sub(r'\.\d{1,2}', '', text)).upper()
+
+# Decorator to time the execution of the function
 @timer
 def get_image_text(left, top, right, bottom):
+    # Get the window of the game
     window = get_idle_slayer_window()
+    # Grab the image from the specified bounding box
     image = ImageGrab.grab(bbox=(window.left + left, window.top + top, window.left + right, window.top + bottom))
-    # Convert the PIL image to a NumPy array
+    # Convert the image to a NumPy array
     image_np = np.array(image)
-    
-    # Convert to grayscale
+    # Convert the image to grayscale
     gray_image = cv2.cvtColor(image_np, cv2.COLOR_BGR2GRAY)
-    
-    # Apply thresholding
+    # Apply Otsu's thresholding to the grayscale image
     _, thresholded_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # Scaling down the image
-    scale_percent = 80
-    width = int(thresholded_image.shape[1] * scale_percent / 100)
-    height = int(thresholded_image.shape[0] * scale_percent / 100)
+    # Calculate the width and height of the scaled image
+    width = int(thresholded_image.shape[1] * SCALE_PERCENT / 100)
+    height = int(thresholded_image.shape[0] * SCALE_PERCENT / 100)
+    # Resize the image
     scaled_image = cv2.resize(thresholded_image, (width, height), interpolation=cv2.INTER_AREA)
-    
-    # Convert the NumPy array back to a PIL image
+    # Convert the scaled image back to a PIL image
     image = Image.fromarray(scaled_image)
     
+    # Get the configuration and path for the current 'left' value
+    config_and_path = get_config_and_path(left)
+    # Use Tesseract to get the text from the image
+    text = pytesseract.image_to_string(image, config=config_and_path['config'], lang='eng')
+    # If 'left' is 1100, remove the period and 1-2 numbers following it from the text
     if left == 1100:
-        text = pytesseract.image_to_string(image, config=custom_config, lang='eng')
-        screenshot_path = 'screenshot.png'
-        # Remove the period and 1-2 numbers following it
-        text = (re.sub(r'\.\d{1,2}', '', text)).upper()
-    else:
-        text = pytesseract.image_to_string(image, config=custom_config2, lang='eng')
-        screenshot_path = 'screenshot2.png'
-            
+        text = remove_period_and_numbers(text)
+    # Print the text
     print(text)
-    #image.save(screenshot_path) # Saves the image to see what the function is screenshotting
+    # Save the image
+    image.save(config_and_path['path'])
     
+    # Return the text
     return text
     
 def arrow_keys():
@@ -118,9 +141,9 @@ def arrow_keys():
     target_window_title = "Idle Slayer"
     while not event.is_set():  # Check the event status
         settings = load_settings()
+        jumpratevalue = int(settings.get("Settings", "jumpratevalue", fallback="150"))
+        
         if not settings.getboolean("Settings", "paused") and not settings.getboolean("Settings", "chesthuntactivestate"):
-            # Updates jump rate from settings file
-            jumpratevalue = int(settings.get("Settings", "jumpratevalue", fallback="150"))
             # Get the focused window's title
             focused_window_title = win32gui.GetWindowText(win32gui.GetForegroundWindow())
             if focused_window_title == target_window_title:  
@@ -139,14 +162,10 @@ def general_gameplay():
     settings = load_settings()
     if settings.getboolean("Settings", "slayerpoints"):
         update_settings("slayerpoints")
-    if settings.getboolean("Settings", "autobuyupgradestate"):
-        cooldown_activated = True
-        print("Cooldown activated: True")
-        auto_upgrades_cooldown = settings.getint("Settings", "autobuyvalue")
-        timer = time.time()
-    else:
-        cooldown_activated = False
-        print("Cooldown activated: False")
+    cooldown_activated = settings.getboolean("Settings", "autobuyupgradestate")
+    print(f"Cooldown activated: {cooldown_activated}")
+    auto_upgrades_cooldown = settings.getint("Settings", "autobuyvalue") if cooldown_activated else None
+    timer = time.time() if cooldown_activated else None
         
     target_window_title = "Idle Slayer"
     while not event.is_set():  # Check the event status
@@ -238,11 +257,11 @@ def general_gameplay():
                     increment_stat("Collected Silver Boxes") 
                 
                 # Get Total Slayer Points
-                if settings.get("Settings","autoascensionstate") and total_slayer_points is None:
+                if settings.getboolean("Settings","autoascensionstate") and total_slayer_points is None:
                     get_total_slayer_points()
         
                 # Check Auto Ascension
-                if settings.get("Settings","autoascensionstate"):
+                if settings.getboolean("Settings","autoascensionstate"):
                     auto_ascension()
                 
                 time.sleep(0.20) # Currently to reduce cpu usage. Will reduce when this function has more code and pixel searches to run
@@ -254,51 +273,53 @@ def general_gameplay():
 @timer
 # Auto Ascension
 def auto_ascension():
-    global slayer_points, total_slayer_points, timer_start_time, last_check_time, occurrences
+    global slayer_points, total_slayer_points, timer_start_time, last_check_time, occurrences, slayer_points_checked
     window = get_idle_slayer_window()
     settings = load_settings()
-    if slayer_points:
-        if timer_start_time is None:
-            timer_start_time = time.time()
-            last_check_time = timer_start_time
     
-    if settings.getboolean("Settings", "slayerpoints"):
+    if slayer_points and timer_start_time is None:
+        slayer_points_checked = False
+        timer_start_time = time.time()
+        last_check_time = timer_start_time
+    
+    if settings.getboolean("Settings", "slayerpoints") and time.time() - last_check_time >= 5 * 60:
         # If it's been 5 minutes since the last check, reset slayer_points and the setting
-        if time.time() - last_check_time >= 5 * 60:
-            slayer_points = None
-            occurrences = {}
-            update_settings("slayerpoints")
+        slayer_points = None
+        slayer_points_checked = False
+        occurrences = {}
+        update_settings("slayerpoints")
     
-    if not settings.getboolean("Settings", "slayerpoints"):
-        if pyautogui.pixelMatchesColor(window.left + 1100, window.top + 90, (61, 52, 165)):
-            possible_slayer_points = get_image_text(1100, 73, 1184, 99)
-            
-            # Use regular expressions to find matching text
-            matches = re.findall(pattern, possible_slayer_points)
-            
-            if occurrences.__len__() >= 10:
-                occurrences.clear()
-            
-            for match in matches:
-                # If the match is not in the occurrences dictionary, add it
-                if match not in occurrences:
-                    occurrences[match] = 1
-                else:
-                    occurrences[match] += 1
-                    
-                    # Check if the same text has been found 20 times
-                    if occurrences[match] == 20:
-                        slayer_points = match  # Save the text to slayer_points
-                        update_settings("slayerpoints")
-                        print(slayer_points)
-                        last_check_time = time.time()  # Update the last_check_time
-                        write_log_entry(f"Slayer Points: {slayer_points}")
-            
-            # Print the occurrences
-            for text, count in occurrences.items():
-                print(f"Found: {text} {count} times")
+    if not settings.getboolean("Settings", "slayerpoints") and pyautogui.pixelMatchesColor(window.left + 1100, window.top + 90, (61, 52, 165)):
+        possible_slayer_points = get_image_text(1100, 73, 1184, 99)
+        
+        # Use regular expressions to find matching text
+        matches = re.findall(pattern, possible_slayer_points)
+        
+        if occurrences.__len__() >= 10:
+            occurrences.clear()
+        
+        for match in matches:
+            # If the match is not in the occurrences dictionary, add it
+            if match not in occurrences:
+                occurrences[match] = 1
+            else:
+                occurrences[match] += 1
+                
+                # Check if the same text has been found 20 times
+                if occurrences[match] == 20:
+                    slayer_points = match  # Save the text to slayer_points
+                    update_settings("slayerpoints")
+                    print(slayer_points)
+                    last_check_time = time.time()  # Update the last_check_time
+                    write_log_entry(f"Slayer Points: {slayer_points}")
+        
+        # Print the occurrences
+        print()
+        for text, count in occurrences.items():
+            print(f"Found: {text} {count} times")
+        print()
     
-    if slayer_points is not None and total_slayer_points is not None:
+    if slayer_points is not None and total_slayer_points is not None and slayer_points_checked is False:
         # Extract the number and abbreviation
         number = int(slayer_points[:-1])  # Remove the last character and convert to a int
         abbreviation = slayer_points[-1]
@@ -309,40 +330,40 @@ def auto_ascension():
 
             print("Original Value:", number)
             print("Converted Value:", converted_value)
+            slayer_points_checked = True
+            
+            auto_ascension_slider = settings.getint("Settings", "autoascensionslider") / 100
+            slayer_points_needed = int(total_slayer_points * auto_ascension_slider)
+            print(f"Slayer Points Needed: {slayer_points_needed}")
+            if converted_value > slayer_points_needed:
+                print(slayer_points_needed)
+                print("Auto Ascending...")
+                write_log_entry(f"Auto Ascending")
+                increment_stat("Auto Ascensions")
+                
+                # Click ascension button
+                click_and_sleep(window, 95, 90, 0.4)
+                
+                # Click ascension tab
+                click_and_sleep(window, 93, 680, 0.2)
+                
+                # Click ascend button
+                click_and_sleep(window, 185, 595, 0.5)
+                
+                # Click yes button
+                click_and_sleep(window, 550, 580, 3)
+                
+                slayer_points = None
+                last_check_time = None
+                timer_start_time = None
+                slayer_points_checked = False
+                update_settings("slayerpoints")
+                
+                get_total_slayer_points()
+                time.sleep(5)
+                buying()
         else:
             print("Unknown Abbreviation:", abbreviation)
-
-        print(f"Slayer Points Needed: {(int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100)))}")
-        if converted_value > (int((total_slayer_points) * (settings.getint("Settings", "autoascensionslider") / 100))):
-            print(int((total_slayer_points * (settings.getint("Settings", "autoascensionslider") / 100))))
-            print("Auto Ascending...")
-            write_log_entry(f"Auto Ascending")
-            increment_stat("Auto Ascensions")
-            
-            # Click ascension button
-            pyautogui.click(window.left + 95, window.top + 90)
-            time.sleep(0.4)
-            
-            # Click ascension tab
-            pyautogui.click(window.left + 93, window.top + 680)
-            time.sleep(0.2)
-            
-            # Click ascend button
-            pyautogui.click(window.left + 185, window.top + 595)
-            time.sleep(0.5)
-            
-            # Click yes button
-            pyautogui.click(window.left + 550, window.top + 580)
-            time.sleep(3)
-            
-            slayer_points = None
-            last_check_time = None
-            timer_start_time = None
-            update_settings("slayerpoints")
-            
-            get_total_slayer_points()
-            time.sleep(5)
-            buying()
 
 # Find and save total slayer points
 @timer
@@ -351,21 +372,18 @@ def get_total_slayer_points():
     found = False
     window = get_idle_slayer_window()
     update_settings("paused")
+    
     # Close Shop window if open
-    pyautogui.click(window.left + 1244, window.top + 712)
-    time.sleep(0.15)
-    
+    click_and_sleep(window, 1244, 712, 0.15)
+
     # Open shop window
-    pyautogui.click(window.left + 1163, window.top + 655)
-    time.sleep(0.15)
-    
+    click_and_sleep(window, 1163, 655, 0.15)
+
     # Open stats window
-    pyautogui.click(window.left + 1150, window.top + 690)
-    time.sleep(0.15)
-    
+    click_and_sleep(window, 1150, 690, 0.15)
+
     # Scroll to top of scrollbar
-    pyautogui.click(window.left + 1254, window.top + 168, clicks=10, interval=0.005)
-    time.sleep(0.2)
+    click_and_sleep(window, 1254, 168, 0.2, clicks=10, interval=0.005)
     
     while True:
         for i in range(5):
@@ -378,93 +396,85 @@ def get_total_slayer_points():
             # Split the text by newlines to extract individual lines
             lines = possible_total_slayer_points.split('\n')
             for line in lines:
-                if found is True:
+                if "totalslayerpoints:" in line.lower():
+                    # Extract the value after "totalslayerpoints:"
+                    total_slayer_points = line.split(":")[1].strip()
+                    if total_slayer_points == "":
+                        found = True
+                    else:
+                        update_settings("paused")
+
+                        # Close Shop window
+                        click_and_sleep(window, 1244, 712, 0.15)
+
+                        total_slayer_points = int(''.join(i for i in total_slayer_points if i.isdigit()))
+                        write_log_entry(f"Total Slayer Points: {total_slayer_points}")
+                        print("Total Slayer Points:", total_slayer_points)
+
+                        return total_slayer_points
+
+                elif found:
                     update_settings("paused")
-                    
+
                     # Close Shop window
-                    pyautogui.click(window.left + 1244, window.top + 712)
-                    time.sleep(0.15)
-                    
+                    click_and_sleep(window, 1244, 712, 0.15)
+
                     total_slayer_points = line.replace(",", "")
                     if total_slayer_points.isdigit():
                         total_slayer_points = int(total_slayer_points)
                         print("Total Slayer Points:", total_slayer_points)
-                        return  total_slayer_points
+                        return total_slayer_points
                     else:
                         found = False
                     write_log_entry(f"Total Slayer Points: {total_slayer_points}")
                     print("Total Slayer Points:", total_slayer_points)
                     
-                    
-                else:
-                    # Check if the line contains "totalslayerpoints:"
-                    if "totalslayerpoints:" in line.lower():
-                        # Extract the value after "totalslayerpoints:"
-                        total_slayer_points = line.split(":")[1].strip()
-                        if total_slayer_points == "":
-                            found = True
-                        else:
-                            update_settings("paused")
-                            
-                            # Close Shop window
-                            pyautogui.click(window.left + 1244, window.top + 712)
-                            time.sleep(0.15)
-                            
-                            total_slayer_points = int(''.join(i for i in total_slayer_points if i.isdigit()))
-                            write_log_entry(f"Total Slayer Points: {total_slayer_points}")
-                            print("Total Slayer Points:", total_slayer_points)
-                            
-                            return  total_slayer_points
+                    return  total_slayer_points
 
 # Collect & Send Minions
 @timer
 def collect_minion():
     window = get_idle_slayer_window()
+    
     # Click ascension button
-    pyautogui.click(window.left + 95, window.top + 90)
-    time.sleep(0.4)
+    click_and_sleep(window, 95, 90, 0.4)
     
     # Click ascension tab
-    pyautogui.click(window.left + 93, window.top + 680)
-    time.sleep(0.2)
+    click_and_sleep(window, 93, 680, 0.2)
     
     # Click ascension tree tab
-    pyautogui.click(window.left + 193, window.top + 680)
-    time.sleep(0.2)
+    click_and_sleep(window, 193, 680, 0.2)
     
     # ????
-    pyautogui.click(window.left + 691, window.top + 680)
-    time.sleep(0.2)
+    click_and_sleep(window, 691, 680, 0.2)
     
     # Click minion tab
-    pyautogui.click(window.left + 332, window.top + 680)
-    time.sleep(0.2)
+    click_and_sleep(window, 332, 680, 0.2)
     
     # Check if Daily Bonus is available
     if PixelSearchWindow((17, 170, 35), 370, 910, 410, 470, shade=9) is not None:
         # Click Claim All
-        pyautogui.click(window.left + 320, window.top + 280, clicks=5, interval=0.01)
-        time.sleep(0.2)
+        click_and_sleep(window, 320, 280, 0.2, clicks=5)
+        
         # Click Send All
-        pyautogui.click(window.left + 320, window.top + 280, clicks=5, interval=0.01)
-        time.sleep(0.2)
+        click_and_sleep(window, 320, 280, 0.2, clicks=5)
+        
         # Claim Daily Bonus
-        pyautogui.click(window.left + 320, window.top + 180, clicks=5, interval=0.01)
-        time.sleep(0.2)
+        click_and_sleep(window, 320, 180, 0.2, clicks=5)
+        
         write_log_entry("Minions Collect with Daily Bonus")
     else:
         # Click Claim All
-        pyautogui.click(window.left + 318, window.top + 182, clicks=5)
-        time.sleep(0.4)
+        click_and_sleep(window, 318, 182, 0.4, clicks=5)
+        
         # Click Send All
-        pyautogui.click(window.left + 318, window.top + 182, clicks=5)
-        time.sleep(0.2)
+        click_and_sleep(window, 318, 182, 0.2, clicks=5)
+        
         write_log_entry("Minions Collect")
     
     # Click Exit
-    pyautogui.click(window.left + 570, window.top + 694)      
+    click_and_sleep(window, 570, 694, 0.2)    
 
-# Claim quests
 @timer
 def claim_quests():
     window = get_idle_slayer_window()
@@ -475,27 +485,22 @@ def claim_quests():
         update_settings("paused")
 
     # Close Shop window if open
-    pyautogui.click(window.left + 1244, window.top + 712)
-    time.sleep(0.15)
+    click_and_sleep(window, 1244, 712, 0.15)
     
     # Open shop window
-    pyautogui.click(window.left + 1163, window.top + 655)
-    time.sleep(0.15)
+    click_and_sleep(window, 1163, 655, 0.15)
     
     # Click on armor tab
-    pyautogui.click(window.left + 850, window.top + 690)
+    click_and_sleep(window, 850, 690, 0.01)
     
     # Click on upgrade tab
-    pyautogui.click(window.left + 927, window.top + 683)
-    time.sleep(0.15)
+    click_and_sleep(window, 927, 683, 0.01)
     
     # Click on quest tab
-    pyautogui.click(window.left + 1000, window.top + 690)
-    time.sleep(0.05)
+    click_and_sleep(window, 1000, 690, 0.05)
     
     # Scroll to top of scrollbar
-    pyautogui.click(window.left + 1254, window.top + 272, clicks=10, interval=0.005)
-    time.sleep(0.2)
+    click_and_sleep(window, 1254, 272, 0.2, clicks=10, interval=0.005)
     
     while True:
         # Check if there is any green buy boxes
@@ -509,60 +514,78 @@ def claim_quests():
             # Check gray scroll bar is there
             if not pyautogui.pixelMatchesColor(window.left + 1253, window.top + 645, (214, 214, 214)):
                 break
-            #time.sleep(0.01)
         else:
             # Click Green buy box
             write_log_entry("Quest Claimed")
             pyautogui.leftClick(window.left + location[0], window.top + location[1])
     
     # Close Shop
-    pyautogui.click(window.left + 1244, window.top + 712)
+    click_and_sleep(window, 1244, 712, 0.01)
     update_settings("paused")
 
-# Auto Rage
+# Function to get a setting from the configuration
+def get_setting(settings, section, option, type='boolean'):
+    if type == 'boolean':
+        return settings.getboolean(section, option)
+    elif type == 'int':
+        return settings.getint(section, option)
+
+# Function to craft an item and log the action
+def craft_and_log(settings, color, item, state):
+    # Check if the state is enabled in the settings
+    if get_setting(settings, "Settings", state):
+        # Craft the item
+        Craft_Temporary_Item(color)
+        # Update the state in the settings
+        update_settings(state)
+        # Log the action
+        write_log_entry(f"Crafted {item}")
+
+# Function to perform actions when a horde is detected
 @timer
 def Rage_When_Horde():
+    # Load the settings
     settings = load_settings()
+    # Check if the Soul Bonus is active
     SoulBonusActive = Check_Soul_Bonus()
-    
+
+    # If the Soul Bonus is active, craft the Rage Pill and Soul Compass
     if SoulBonusActive:
-        if settings.getboolean("Settings", "craftragepillstate"):
-            Craft_Temporary_Item((135, 22, 70))
-            write_log_entry("Crafted Rage Pill")
-        if settings.getboolean("Settings", "craftsoulbonusstate"):
-            Craft_Temporary_Item((125, 85, 216))
-            write_log_entry("Crafted Soul Compass")
-            
-    if settings.getint("Settings", "ragestate") == 1:
-        if SoulBonusActive:
-            write_log_entry("MegaHorde Rage with SoulBonus")
-            increment_stat("Rage with MegaHorde and Soul Bonus")
-            Rage()
-    elif settings.getint("Settings", "ragestate") == 2:
+        craft_and_log(settings, (135, 22, 70), "Rage Pill", "craftragepillstate")
+        craft_and_log(settings, (125, 85, 216), "Soul Compass", "craftsoulbonusstate")
+
+    # Get the rage state from the settings
+    rage_state = get_setting(settings, "Settings", "ragestate", 'int')
+    # If the rage state is 1 and the Soul Bonus is active, log the action and increment the stat
+    if rage_state == 1 and SoulBonusActive:
+        write_log_entry("MegaHorde Rage with SoulBonus")
+        increment_stat("Rage with MegaHorde and Soul Bonus")
+        Rage()
+    # If the rage state is 2, log the action and increment the stat
+    elif rage_state == 2:
         write_log_entry(f"Rage MegaHorde")
         increment_stat("Rage with only MegaHorde")
         Rage()
 
+# Function to perform the Rage action
 @timer
 def Rage():
+    # Load the settings
     settings = load_settings()
-    if settings.getboolean("Settings", "craftdimensionalstaffstate"):
-        Craft_Temporary_Item((243, 124, 85))
-        update_settings("craftdimensionalstaffstate")
-        write_log_entry("Crafted Dimensional Staff")
-    if settings.getboolean("Settings", "craftbidimensionalstaffstate"):
-        Craft_Temporary_Item((82, 102, 41))
-        update_settings("craftbidimensionalstaffstate")
-        write_log_entry("Crafted BiDimensional Staff")
+    # Craft the Dimensional Staff and BiDimensional Staff
+    craft_and_log(settings, (243, 124, 85), "Dimensional Staff", "craftdimensionalstaffstate")
+    craft_and_log(settings, (82, 102, 41), "BiDimensional Staff", "craftbidimensionalstaffstate")
+    # Press the 'e' key
     keyboard.press_and_release('e')
-    
-# Checks Soul Bonus
+
+# Function to check if the Soul Bonus is active
 @timer
 def Check_Soul_Bonus():
     print("Checking for Soul Bonus")
+    # If the pixel color matches the Soul Bonus color, log the action and return True
     if PixelSearchWindow((168, 109, 10), 625, 629, 143, 214, shade=0) is not None:
         write_log_entry("MegaHorde Rage with SoulBonus")
-        return True 
+        return True
 
 @timer
 def Craft_Temporary_Item(color):
@@ -570,16 +593,13 @@ def Craft_Temporary_Item(color):
     window = get_idle_slayer_window()
     
     # Open the menu
-    pyautogui.click(window.left + 160, window.top + 100)
-    time.sleep(0.15)
-    
+    click_and_sleep(window, 160, 100, 0.15)
+
     # Click the temp item tab
-    pyautogui.click(window.left + 260, window.top + 690)
-    time.sleep(0.15)
-    
+    click_and_sleep(window, 260, 690, 0.15)
+
     # Click the top of the scrollbar
-    pyautogui.click(window.left + 482, window.top + 150, clicks=5)
-    time.sleep(0.45)
+    click_and_sleep(window, 482, 150, 0.45, clicks=5)
     
     while True:
         # Search for the pixel with the specified color
@@ -599,8 +619,7 @@ def Craft_Temporary_Item(color):
             break
     
     # Click the final location
-    pyautogui.click(window.left + 440, window.top + 690)
-    time.sleep(0.1)
+    click_and_sleep(window, 440, 690, 0.1)
     update_settings("paused")
 
 # Cycle Portals
@@ -620,8 +639,7 @@ def CyclePortals():
             return
         
         if PixelSearchWindow((255, 255, 255), 1154, 1210, 144, 155, shade=9) is None:
-            pyautogui.leftClick(window.left + 1180, window.top + 150)
-            time.sleep(0.3)
+            click_and_sleep(window, 1180, 150, 0.3)
             
             pyautogui.moveTo(window.left + 867, window.top + 300)
             time.sleep(0.2)
@@ -659,8 +677,7 @@ def CyclePortals():
                     pyautogui.moveTo(window.left + 867, window.top + 300)
                     pyautogui.scroll(-1)
                 else:
-                    pyautogui.leftClick(window.left + location[0], window.top + location[1])
-                    time.sleep(0.3)
+                    click_and_sleep(window, location[0], location[1], 0.3)
                     break
             
             cycle_portal_count += 1
@@ -786,10 +803,12 @@ def chest_hunt():
         pixel_x = window.left + 185
 
     # Look for close button until found
-    while PixelSearchWindow((179, 0, 0), 300, 500, 650, 700, shade=1) or PixelSearchWindow((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
-        print("exit chesthunt")
-        pyautogui.click(window.left + 643, window.top + 693)
-        break
+    while True:
+        time.sleep(0.05)
+        if PixelSearchWindow((179, 0, 0), 300, 500, 650, 700, shade=1) or PixelSearchWindow((180, 0, 0), 300, 500, 650, 700, shade=1) is not None:
+            break
+        if PixelSearchWindow((246, 143, 55), 440, 460, 430, 45, shade=1) is not None:
+            pyautogui.click(window.left + 457, window.top + 439)
     
     update_settings("chesthuntactivestate")
 
@@ -810,41 +829,35 @@ def buy_equipment():
         
     window = get_idle_slayer_window()
     # Close Shop window if open
-    pyautogui.click(window.left + 1244, window.top + 712)
-    time.sleep(0.15)
+    click_and_sleep(window, 1244, 712, 0.15)
     
     # Open shop window
-    pyautogui.click(window.left + 1163, window.top + 655)
-    time.sleep(0.15)
+    click_and_sleep(window, 1163, 655, 0.15)
     
     # Search for the white pixel to confirm shop window is open
     if pyautogui.pixelMatchesColor(window.left + 807, window.top + 142, (255, 255, 255)):
         # Click on armor tab
-        pyautogui.click(window.left + 850, window.top + 690)
-        time.sleep(0.05)
+        click_and_sleep(window, 850, 690, 0.05)
         
         # Click Max buy
-        pyautogui.click(window.left + 1180, window.top + 636, clicks=4, interval=0.01)
+        click_and_sleep(window, 1180, 636, 0.01, clicks=4, interval=0.01)
         
         # Check if green buy box is present
         if pyautogui.pixelMatchesColor(window.left + 1257, window.top + 340, (17, 170, 35)):
             # Buy sword
-            pyautogui.click(window.left + 1200, window.top + 200, clicks=5, interval=0.005)
+            click_and_sleep(window, 1200, 200, 0.005, clicks=5, interval=0.005)
         else:
             # Click Bottom of scroll bar
-            pyautogui.click(window.left + 1253, window.top + 592, clicks=5, interval=0.005)
-            time.sleep(0.5)
+            click_and_sleep(window, 1253, 592, 0.5, clicks=5, interval=0.005)
             
             # Buy last item
-            pyautogui.click(window.left + 1200, window.top + 590, clicks=5, interval=0.005)
-            time.sleep(0.3)
+            click_and_sleep(window, 1200, 590, 0.3, clicks=5, interval=0.005)
             
             # Click top of scroll bar
-            pyautogui.click(window.left + 1253, window.top + 170, clicks=5, interval=0.005)
-            time.sleep(0.3)
+            click_and_sleep(window, 1253, 170, 0.3, clicks=5, interval=0.005)
         
         # Buy 50 items
-        pyautogui.click(window.left + 1100, window.top + 636, clicks=5, interval=0.005)
+        click_and_sleep(window, 1100, 636, clicks=5, interval=0.005)
         
         # Move to Scroll Bar
         pyautogui.moveTo(window.left + 1253, window.top + 170)
@@ -854,7 +867,7 @@ def buy_equipment():
             green_location = PixelSearchWindow(((17, 170, 35)), 1160, 1160, 170, 600, shade=0)
             if green_location is not None:
                 # Click Green buy box
-                pyautogui.click(window.left + green_location[0], window.top + green_location[1], clicks=5, interval=0.005)
+                click_and_sleep(window, green_location[0], green_location[1], clicks=5, interval=0.005)
             elif not pyautogui.pixelMatchesColor(window.left + 1253, window.top + 597, (214, 214, 214)):
                 break
             else:
@@ -871,11 +884,10 @@ def buy_equipment():
 def buy_upgrade():
     window = get_idle_slayer_window()
     # Navigate to upgrade and scroll up
-    pyautogui.click(window.left + 927, window.top + 683)
-    time.sleep(0.15)
+    click_and_sleep(window, 927, 683, 0.15)
     # Top of scrollbar
-    pyautogui.click(window.left + 1253, window.top + 170)
-    time.sleep(0.4)
+    click_and_sleep(window, 1253, 170, 0.4)
+    
     something_bought = False
     y = 170
     while True:
@@ -894,11 +906,12 @@ def buy_upgrade():
             #print("Buy Upgrade")
             something_bought = True
             # Click green buy
-            pyautogui.click(window.left + 1180, window.top + y)
+            click_and_sleep(window, 1180, y)
+    
     if something_bought:
         buy_equipment()
     else:
-        pyautogui.click(window.left + 1222, window.top + 677)
+        click_and_sleep(window, 1222, 677)
         
     if settings.getboolean("Settings", "paused"):
         update_settings("paused")

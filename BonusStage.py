@@ -62,37 +62,26 @@ def c_send(press_delay, post_press_delay=0, key="w"):
 @timer
 def slider():
     window = get_idle_slayer_window()
-    # Top left
-    if pyautogui.pixelMatchesColor(window.left + 443, window.top + 560, (0, 126, 0)):
-        pyautogui.moveTo(window.left + 840, window.top + 560)
-        pyautogui.click(window.left + 840, window.top + 560)
-        pyautogui.dragTo(window.left + 450, window.top + 560, button='left', duration=0.5)
-        print("Top Left")
-        return
+    # Define the positions
+    positions = [
+        {"x": 443, "y": 560, "name": "Top Left"},
+        {"x": 443, "y": 620, "name": "Bottom Left"},
+        {"x": 850, "y": 560, "name": "Top Right"},
+        {"x": 850, "y": 620, "name": "Bottom Right"},
+    ]
     
-    # Bottom left
-    if pyautogui.pixelMatchesColor(window.left + 443, window.top + 620, (0, 126, 0)):
-        pyautogui.moveTo(window.left + 840, window.top + 620)
-        pyautogui.click(window.left + 840, window.top + 620)
-        pyautogui.dragTo(window.left + 450, window.top + 620, button='left', duration=0.5)
-        print("Bottom Left")
-        return
-    
-    # Top right
-    if pyautogui.pixelMatchesColor(window.left + 850, window.top + 560, (0, 126, 0)):
-        pyautogui.moveTo(window.left + 450, window.top + 560)
-        pyautogui.click(window.left + 450, window.top + 560)
-        pyautogui.dragTo(window.left + 840, window.top + 560, button='left', duration=0.5)
-        print("Top Right")
-        return
-    
-    # Bottom right
-    if pyautogui.pixelMatchesColor(window.left + 850, window.top + 620, (0, 126, 0)):
-        pyautogui.moveTo(window.left + 450, window.top + 620)
-        pyautogui.click(window.left + 450, window.top + 620)
-        pyautogui.dragTo(window.left + 840, window.top + 620, button='left', duration=0.5)
-        print("Bottom Right")
-        return
+    for pos in positions:
+        if pyautogui.pixelMatchesColor(window.left + pos["x"], window.top + pos["y"], (0, 126, 0)):
+            perform_slider_operation(window, pos["x"], pos["y"], pos["name"])
+            return
+
+def perform_slider_operation(window, x, y, name):
+    start_x = window.left + 450 if name.endswith("Right") else window.left + 840
+    end_x = window.left + 840 if name.endswith("Right") else window.left + 450
+    pyautogui.moveTo(start_x, window.top + y)
+    pyautogui.click(start_x, window.top + y)
+    pyautogui.dragTo(end_x, window.top + y, button='left', duration=0.5)
+    print(name)
 
 @timer
 def find_pixel_until_found(x1, y1, x2, y2, color):

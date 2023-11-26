@@ -11,14 +11,18 @@ logs_dir = os.path.join(base_dir, "AutoSlayerLogs")
 log_file_path = os.path.join(logs_dir, "log.txt")
 stats_file_path = os.path.join(logs_dir, "stats.txt")
 
+# Function to write to a file
+def write_to_file(file_path, mode, content):
+    with open(file_path, mode) as file:
+        file.write(content)
+
 @timer
 def write_log_entry(log_entry):
-    with open(log_file_path, "a") as log_file:
-        current_time = time.strftime("%Y-%m-%d %H:%M:%S")
-        formatted_log_entry = f"{current_time} : {log_entry}\n"
-        log_file.write(formatted_log_entry)
-        time.sleep(0.1)
-        remove_extra_lines()
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    formatted_log_entry = f"{current_time} : {log_entry}\n"
+    write_to_file(log_file_path, "a", formatted_log_entry)
+    time.sleep(0.1)
+    remove_extra_lines()
 
 @timer
 def increment_stat(stat_name):
@@ -40,9 +44,8 @@ def increment_stat(stat_name):
         stats[stat_name] = 1
 
     # Write the updated stats back to the file
-    with open(stats_file_path, "w") as configfile:
-        for stat, value in stats.items():
-            configfile.write(f"{stat}: {value}\n")
+    stats_content = "\n".join(f"{stat}: {value}" for stat, value in stats.items())
+    write_to_file(stats_file_path, "w", stats_content)
 
 # Function to parse the date from the log line
 def parse_date(log_line):
@@ -78,5 +81,5 @@ def remove_extra_lines():
         prev_date = current_date
 
     # Write the filtered lines back to the file
-    with open(log_file_path, 'w') as file:
-        file.writelines(filtered_lines)
+    filtered_lines_content = "".join(filtered_lines)
+    write_to_file(log_file_path, 'w', filtered_lines_content)

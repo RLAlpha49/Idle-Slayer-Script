@@ -12,7 +12,6 @@ settings_file_path = os.path.join(logs_dir, "settings.txt")
 @timer
 def load_settings():
     settings = ConfigParser()
-    settings_file_path = os.path.join(logs_dir, "settings.txt")
     settings.read(settings_file_path)
     return settings
 
