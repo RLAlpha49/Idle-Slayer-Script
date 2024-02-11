@@ -2,6 +2,7 @@ import time
 import inspect
 import os
 
+
 # Decorator function
 def timer(func):
     def wrapper(*args, **kwargs):

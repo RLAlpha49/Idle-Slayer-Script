@@ -9,21 +9,24 @@ base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 logs_dir = os.path.join(base_dir, "AutoSlayerLogs")
 settings_file_path = os.path.join(logs_dir, "settings.txt")
 
+
 @timer
 def load_settings():
     settings = ConfigParser()
     settings.read(settings_file_path)
     return settings
 
+
 @timer
 def update_settings(setting):
     settings = load_settings()
     state = settings.getboolean("Settings", str(setting))
     state = not state
-    
+
     settings.set("Settings", str(setting), str(state))
     with open(settings_file_path, "w") as configfile:
         settings.write(configfile)
+
 
 @timer
 def get_idle_slayer_window():
