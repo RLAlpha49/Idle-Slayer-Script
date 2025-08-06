@@ -1,68 +1,233 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
   <meta name="google-site-verification" content="39U2tBvmAOSV2vlIfbhDWCS-h7wkVE3EJq49P_QdBd8" />
   <meta name="google-site-verification" content="ffyaM4wiFMm-7yea0RwJUN6qLAvB_0DU__eEwqpQAD0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Idle Slayer Script</title>
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <meta name="description" content="Automation script and GUI for Idle Slayer." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" />
   <style>
-    .my-header {
-      padding: 50px;
-      background-color: black;
-      color: white;
-      text-align: center;
+    :root {
+      --bg: #0b0f14;
+      --bg-elev: #10161f;
+      --text: #e6edf3;
+      --muted: #9fb1c1;
+      --primary: #58a6ff;
+      --accent: #6dd6ff;
+      --border: #1f2a37;
+      --success: #3fb950;
+      --danger: #f85149;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --maxw: 1080px;
     }
-    .my-button {
-      font-weight: 900;
+    * { box-sizing: border-box }
+    html, body { height: 100% }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% -10%, #0f1622 0%, transparent 60%),
+                  radial-gradient(1000px 700px at 120% 10%, #0d1320 0%, transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    .my-card {
-      min-height: 460px;
+    a { color: var(--primary); text-decoration: none }
+    a:hover { text-decoration: underline }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(16,22,31,.9), rgba(16,22,31,.6));
+      position: sticky;
+      top: 0; z-index: 10;
+      backdrop-filter: blur(10px);
     }
-    .my-icon {
-      font-size: 120px;
+    .nav {
+      max-width: var(--maxw);
+      margin: 0 auto; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
     }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .2px }
+    .badge { font-size: 12px; color: var(--muted); border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px }
+    .nav a.btn { text-decoration: none }
+
+    .hero {
+      max-width: var(--maxw);
+      margin: 40px auto; padding: 28px 20px 0 20px;
+      display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px;
+    }
+    .card { background: linear-gradient(180deg, #0f1622, #0c1118); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card .inner { padding: 26px; }
+    .title { font-size: 42px; line-height: 1.1; margin: 0 0 12px }
+    .subtitle { color: var(--muted); font-size: 16px; }
+
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px; justify-content: center;
+      padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
+      background: #0e1420; color: var(--text); cursor: pointer; font-weight: 600;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: #243142; }
+    .btn.primary { background: linear-gradient(180deg, #1f3b63, #0e2342); border-color: #2b4c75; box-shadow: inset 0 1px 0 #30598a; }
+    .btn.primary:hover { background: linear-gradient(180deg, #244774, #0f2a4f) }
+    .btn.success { background: linear-gradient(180deg, #175a2a, #103a1c); border-color: #1e6d35 }
+
+    .media { padding: 0; overflow: hidden; border-radius: 0 0 var(--radius) var(--radius) }
+    .media img { width: 100%; display: block; object-fit: cover; border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius) }
+
+    .section { max-width: var(--maxw); margin: 26px auto; padding: 0 20px }
+    .grid { display: grid; gap: 18px }
+    .grid.cols-3 { grid-template-columns: repeat(3, 1fr) }
+
+    .feature { padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: linear-gradient(180deg, #0d141f, #0b1018) }
+    .feature h3 { margin: 6px 0 6px; font-size: 16px }
+    .feature p { margin: 0; color: var(--muted); font-size: 14px }
+
+    .panel { display: grid; grid-template-columns: 1fr 1fr; gap: 18px }
+    .pane { padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: linear-gradient(180deg, #0d141f, #0b1018) }
+    .pane h3 { margin: 6px 0 10px }
+    .pane p, .pane li { color: var(--muted); font-size: 14px }
+
+    footer { border-top: 1px solid var(--border); margin-top: 36px }
+    .foot { max-width: var(--maxw); margin: 0 auto; padding: 20px; color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px }
+
+    .notice {
+      background: linear-gradient(180deg, #3a1010, #270c0c);
+      border-bottom: 1px solid #4d1a1a;
+      color: #ffd7d7;
+    }
+    .notice .inner { max-width: var(--maxw); margin: 0 auto; padding: 12px 20px; display: block; text-align: center; }
+    .notice .inner a { color: #ffd7d7; text-decoration: underline; font-weight: 600 }
+
+    @media (max-width: 900px){ .hero { grid-template-columns: 1fr } .media img { border-radius: 0 0 var(--radius) var(--radius) } .panel { grid-template-columns: 1fr } .grid.cols-3 { grid-template-columns: 1fr } }
   </style>
 </head>
 <body>
-<header class="my-header" id="myHeader">
-  <div class="w3-center">
-    <h1 class="w3-xxxlarge w3-animate-bottom">Idle Slayer Script</h1>
-    <div class="w3-padding-32">
-      <button class="w3-btn w3-xlarge w3-dark-grey w3-hover-light-grey my-button" onclick="window.location.href='https://github.com/RLAlpha49/Idle-Slayer-Script'">View on Github</button>
+  <header>
+    <div class="nav">
+      <nav>
+        <a class="btn" href="https://github.com/RLAlpha49/Idle-Slayer-Script" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="notice" role="status" aria-live="polite">
+    <div class="inner">
+      Notice: As of April 12, 2025 this project is no longer actively developed. For an up-to-date and actively maintained Idle Slayer automation script, please visit <a href="https://github.com/Devil4ngle/Idle_Slayer_Script" target="_blank" rel="noopener">Devil4ngle's Idle_Slayer_Script</a>.
     </div>
   </div>
-</header>
 
-<div class="w3-row-padding w3-center w3-margin-top">
-<div class="w3-third">
-  <div class="w3-card w3-container my-card">
-  <h3>Simple</h3><br>
-  <i class="fa fa-desktop w3-margin-bottom w3-text-theme my-icon"></i>
-  <p>Easy to understand</p>
-  <p>Almost no user intervention needed</p>
-  </div>
-</div>
+  <main>
+    <section class="hero">
+      <div class="card">
+        <div class="inner">
+          <h1 class="title">Automate Idle Slayer with a clean GUI</h1>
+          <p class="subtitle">A Windows-focused Python tool that automates slaying, bonus stages, and more — with logs and configurable settings.</p>
+          <div class="cta">
+            <a class="btn primary" id="downloadBtn" href="#">Download Latest Release</a>
+            <a class="btn" href="https://github.com/RLAlpha49/Idle-Slayer-Script/releases" target="_blank" rel="noopener">All Releases</a>
+          </div>
+        </div>
+        <div class="media">
+          <img src="Idle_Slayer.webp" alt="Idle Slayer Script screenshot">
+        </div>
+      </div>
+      <div class="card">
+        <div class="inner">
+          <h2 style="margin:0 0 12px">Highlights</h2>
+          <div class="grid">
+            <div class="feature">
+              <h3>GUI Controls</h3>
+              <p>Configure behavior and monitor status with a simple interface.</p>
+            </div>
+            <div class="feature">
+              <h3>Bonus Stage Automation</h3>
+              <p>Optimized clicks and pixel searches for bonus stages.</p>
+            </div>
+            <div class="feature">
+              <h3>Logs</h3>
+              <p>Text logs for insights and troubleshooting.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-<div class="w3-third">
-  <div class="w3-card w3-container my-card">
-  <h3>Easy</h3><br>
-  <i class="fa fa-css3 w3-margin-bottom w3-text-theme my-icon"></i>
-  <p>Click & Play</p>
-  <p>Easy to use</p>
-  <p>Tooltips for information</p>
-  </div>
-</div>
+    <section id="features" class="section">
+      <h2>Features</h2>
+      <div class="grid cols-3">
+        <div class="feature">
+          <h3>Automation Engine</h3>
+          <p>Core logic from AutoSlayer.py handles actions reliably and efficiently.</p>
+        </div>
+        <div class="feature">
+          <h3>Pixel Search</h3>
+          <p>Color-based detection to trigger in-game actions with precision.</p>
+        </div>
+        <div class="feature">
+          <h3>Configurable</h3>
+          <p>Settings and window handling to fit your setup.</p>
+        </div>
+      </div>
+    </section>
 
-<div class="w3-third">
-  <div class="w3-card w3-container my-card">
-  <h3>Design</h3><br>
-  <i class="fa fa-diamond w3-margin-bottom w3-text-theme my-icon"></i>
-  <p>Clean GUI</p>
-  <p>Nothing unnecessary</p>
-  </div>
-</div>
-</div>
+    <section id="install" class="section">
+      <h2>Install & Run</h2>
+      <div class="panel">
+        <div class="pane">
+          <h3>Download</h3>
+          <p>Use the button above to grab the latest packaged build. Alternatively, see all releases on GitHub.</p>
+          <p><a href="https://github.com/RLAlpha49/Idle-Slayer-Script/releases" target="_blank" rel="noopener">View Releases →</a></p>
+        </div>
+        <div class="pane">
+          <h3>From Source</h3>
+          <ol>
+            <li>Install Python 3.12+ on Windows.</li>
+            <li>Clone the repo and install dependencies.</li>
+            <li>Run <code>python AutoSlayer.py</code>.</li>
+          </ol>
+          <p>See the <a href="https://github.com/RLAlpha49/Idle-Slayer-Script/blob/main/README.md" target="_blank" rel="noopener">README</a> for details.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="foot">
+      <div>© <span id="year"></span> Idle Slayer Script</div>
+      <div><a href="https://github.com/RLAlpha49/Idle-Slayer-Script/issues" target="_blank" rel="noopener">Report an Issue</a></div>
+    </div>
+  </footer>
+
+  <script>
+    // Resolve latest release asset URL dynamically
+    async function setLatestReleaseLink(){
+      const btn = document.getElementById('downloadBtn');
+      const api = 'https://api.github.com/repos/RLAlpha49/Idle-Slayer-Script/releases/latest';
+      try {
+        const res = await fetch(api, { headers: { 'Accept': 'application/vnd.github+json' } });
+        if(!res.ok) throw new Error('Failed to fetch releases');
+        const data = await res.json();
+        const asset = (data.assets||[]).find(a => /\.exe$/.test(a.name)) || (data.assets||[])[0];
+        btn.href = asset ? asset.browser_download_url : data.html_url;
+        btn.classList.add('success');
+        btn.setAttribute('target','_blank');
+        btn.setAttribute('rel','noopener');
+      } catch(e){
+        btn.href = 'https://github.com/RLAlpha49/Idle-Slayer-Script/releases';
+      }
+    }
+    setLatestReleaseLink();
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
 </body>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-90GHKDM223"></script>
 <script>
